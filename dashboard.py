@@ -1,17 +1,13 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 
-# १. पेजची सेटिंग
 st.set_page_config(page_title="Deogirkar Water Monitor", page_icon="💧", layout="wide")
 st.title("💧 The Deogirkars' Smart Water Dashboard")
 st.markdown("---")
 
-# २. ॲनिमेटेड टाकी बनवण्याचे फंक्शन (HTML & CSS Magic)
 def draw_tank(tank_name, level_cm, max_height_cm=100, tank_type="overhead"):
-    # पाण्याची टक्केवारी काढणे
     percentage = min(int((level_cm / max_height_cm) * 100), 100)
-    
-    # टाकीचा रंग (अंडरग्राउंडसाठी वेगळा, वरच्यासाठी वेगळा)
     water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
     border_color = "#333" if tank_type == "overhead" else "#8B4513"
     
@@ -28,38 +24,31 @@ def draw_tank(tank_name, level_cm, max_height_cm=100, tank_type="overhead"):
     """
     st.markdown(html_code, unsafe_allow_html=True)
 
-# ३. गुगल शीटमधून डेटा वाचणे
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1oys9fFlUwlwiw1dzYwWMbu0AiZuCszwPLzZWpb34_rA/edit?usp=sharingा"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1oys9fFlUwlwiw1dzYwWMbu0AiZuCszwPLzZWpb34_rA/edit?usp=sharing"
 csv_url = SHEET_URL.replace('/edit?usp=sharing', '/export?format=csv')
 
 try:
-    df = pd.read_csv(csv_url)
+    # येथे आपण encoding='utf-8' ही जादूची ओळ टाकली आहे!
+    df = pd.read_csv(csv_url, encoding='utf-8')
     latest_data = df.iloc[-1]
     
-    # डमी डेटा (तुमच्या शीटमधील रकाण्यांनुसार हे आकडे येतील, सध्या आपण उदाहरणासाठी घेत आहोत)
-    # iloc[3] आणि iloc[5] च्या जागी आपण थेट आकडे वापरूया जेणेकरून एरर येणार नाही
+    # थेट रकाण्यांच्या नंबरवरून डेटा घेणे
     tank1_lvl = int(latest_data.iloc[3]) if pd.notna(latest_data.iloc[3]) else 45
     tank2_lvl = int(latest_data.iloc[5]) if pd.notna(latest_data.iloc[5]) else 70
-    underground_lvl = 85 # उदाहरणासाठी अंडरग्राउंड टाकीची पातळी
+    underground_lvl = 85 
     
     water_source = str(latest_data.iloc[9]) if pd.notna(latest_data.iloc[9]) else "Borewell"
 
-    # ४. डॅशबोर्डचे डिझाईन (३ कॉलम मध्ये)
     st.subheader("🚰 लाईव्ह कंट्रोल पॅनेल")
-    
-    # पॉवर सप्लाय आणि सोर्स दाखवणे
     st.info(f"⚡ **पॉवर सप्लाय:** चालू (ON) &nbsp; | &nbsp; 🌊 **पाण्याचा स्रोत:** {water_source} &nbsp; | &nbsp; 🚰 **सुरू असलेला कॉक:** टाकी २ (उदा.)")
     st.markdown("---")
 
-    # टाक्या दाखवणे
     col1, col2, col3 = st.columns(3)
     
     with col1:
         draw_tank("छतावरील टाकी १", tank1_lvl, max_height_cm=100, tank_type="overhead")
-    
     with col2:
         draw_tank("छतावरील टाकी २", tank2_lvl, max_height_cm=100, tank_type="overhead")
-        
     with col3:
         draw_tank("अंडरग्राउंड टाकी", underground_lvl, max_height_cm=100, tank_type="underground")
 
