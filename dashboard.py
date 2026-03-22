@@ -1,30 +1,71 @@
 import streamlit as st
 import pandas as pd
 
+# १. पेजची सेटिंग
 st.set_page_config(page_title="Deogirkar Water Monitor", page_icon="💧", layout="wide")
 st.title("💧 The Deogirkars' Smart Water Dashboard")
 st.markdown("---")
 
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1oys9fFlUwlwiw1dzYwWMbu0AiZuCszwPLzZWpb34_rA/edit?usp=sharing"
+# २. ॲनिमेटेड टाकी बनवण्याचे फंक्शन (HTML & CSS Magic)
+def draw_tank(tank_name, level_cm, max_height_cm=100, tank_type="overhead"):
+    # पाण्याची टक्केवारी काढणे
+    percentage = min(int((level_cm / max_height_cm) * 100), 100)
+    
+    # टाकीचा रंग (अंडरग्राउंडसाठी वेगळा, वरच्यासाठी वेगळा)
+    water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
+    border_color = "#333" if tank_type == "overhead" else "#8B4513"
+    
+    html_code = f"""
+    <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;">
+        <h4 style="color: #333; margin-bottom: 10px; font-family: sans-serif;">{tank_name}</h4>
+        <div style="width: 140px; height: 200px; border: 4px solid {border_color}; border-radius: 12px; background-color: #e0e0e0; position: relative; overflow: hidden; box-shadow: 5px 5px 15px rgba(0,0,0,0.2);">
+            <div style="position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1.5s ease-in-out; display: flex; align-items: center; justify-content: center;">
+                <span style="color: white; font-weight: bold; font-size: 22px; font-family: sans-serif; text-shadow: 1px 1px 2px black;">{percentage}%</span>
+            </div>
+        </div>
+        <p style="margin-top: 8px; font-weight: bold; color: #555;">पाण्याची पातळी: {level_cm} cm</p>
+    </div>
+    """
+    st.markdown(html_code, unsafe_allow_html=True)
+
+# ३. गुगल शीटमधून डेटा वाचणे
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1oys9fFlUwlwiw1dzYwWMbu0AiZuCszwPLzZWpb34_rA/edit?usp=sharingा"
 csv_url = SHEET_URL.replace('/edit?usp=sharing', '/export?format=csv')
 
 try:
     df = pd.read_csv(csv_url)
     latest_data = df.iloc[-1]
     
-    st.subheader("📊 सध्याची पाण्याची स्थिती (Live Status)")
+    # डमी डेटा (तुमच्या शीटमधील रकाण्यांनुसार हे आकडे येतील, सध्या आपण उदाहरणासाठी घेत आहोत)
+    # iloc[3] आणि iloc[5] च्या जागी आपण थेट आकडे वापरूया जेणेकरून एरर येणार नाही
+    tank1_lvl = int(latest_data.iloc[3]) if pd.notna(latest_data.iloc[3]) else 45
+    tank2_lvl = int(latest_data.iloc[5]) if pd.notna(latest_data.iloc[5]) else 70
+    underground_lvl = 85 # उदाहरणासाठी अंडरग्राउंड टाकीची पातळी
+    
+    water_source = str(latest_data.iloc[9]) if pd.notna(latest_data.iloc[9]) else "Borewell"
+
+    # ४. डॅशबोर्डचे डिझाईन (३ कॉलम मध्ये)
+    st.subheader("🚰 लाईव्ह कंट्रोल पॅनेल")
+    
+    # पॉवर सप्लाय आणि सोर्स दाखवणे
+    st.info(f"⚡ **पॉवर सप्लाय:** चालू (ON) &nbsp; | &nbsp; 🌊 **पाण्याचा स्रोत:** {water_source} &nbsp; | &nbsp; 🚰 **सुरू असलेला कॉक:** टाकी २ (उदा.)")
+    st.markdown("---")
+
+    # टाक्या दाखवणे
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric(label="छतावरील टाकी १ (पातळी)", value=f"{latest_data['Tank_1_Level_cm']} cm")
+        draw_tank("छतावरील टाकी १", tank1_lvl, max_height_cm=100, tank_type="overhead")
+    
     with col2:
-        st.metric(label="छतावरील टाकी २ (पातळी)", value=f"{latest_data['Tank_2_Level_cm']} cm")
+        draw_tank("छतावरील टाकी २", tank2_lvl, max_height_cm=100, tank_type="overhead")
+        
     with col3:
-        st.metric(label="सध्याचा पाण्याचा स्रोत", value=f"{latest_data['Water_Source']}")
+        draw_tank("अंडरग्राउंड टाकी", underground_lvl, max_height_cm=100, tank_type="underground")
 
     st.markdown("---")
-    st.subheader("📝 शेवटच्या काही नोंदी (Recent Logs)")
-    st.dataframe(df.tail(5))
+    st.subheader("📝 शेवटच्या काही नोंदी (Logs)")
+    st.dataframe(df.tail(3))
 
 except Exception as e:
-    st.error(f"डेटा वाचण्यात अडचण आली. कृपया गुगल शीटची लिंक तपासा. Error: {e}")
+    st.error(f"डेटा वाचण्यात अडचण आली. Error: {e}")
