@@ -2,7 +2,7 @@
 import streamlit as st
 
 st.set_page_config(page_title="Deogirkar Water Monitor", layout="wide")
-st.title("अभिराजमेयार्णव पाणी व्यवस्थापन प्रणाली")
+st.title("अभिप्राजमेयार्णव पाणी व्यवस्थापन प्रणाली")
 st.markdown("---")
 
 # १. ॲनिमेशनचा CSS कोड एकदाच सर्वात वर ठेवला आहे (जेणेकरून कोड दिसणार नाही)
