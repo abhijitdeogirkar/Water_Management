@@ -5,6 +5,10 @@ st.set_page_config(page_title="Deogirkar Water Monitor", layout="wide")
 st.title("अभिराजमेयार्णव पाणी व्यवस्थापन प्रणाली")
 st.markdown("---")
 
+# १. ॲनिमेशनचा CSS कोड एकदाच सर्वात वर ठेवला आहे (जेणेकरून कोड दिसणार नाही)
+st.markdown("<style>@keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }</style>", unsafe_allow_html=True)
+
+# २. टाक्या आणि पाणी दाखवणारे फंक्शन (हे आता पूर्णपणे 'Single-line' केले आहे)
 def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
@@ -16,64 +20,28 @@ def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
         offset = 50 if len(inlets) == 1 else (30 if idx == 0 else 70)
         active_pour = ""
         if inlet['active']:
-            active_pour = f"""
-<div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.4s infinite linear; z-index: 1;"></div>
-"""
-        pipes_html += f"""
-<div style="position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;">
-    <div style="font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;">{inlet['name']}</div>
-    <div style="width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;"></div>
-    <div style="width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;">
-        {active_pour}
-    </div>
-</div>
-"""
+            active_pour = f"<div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.4s infinite linear; z-index: 1;'></div>"
+        
+        pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
-    html = f"""
-<style>
-@keyframes waterPour {{
-    0% {{ background-position: 0 0px; }}
-    100% {{ background-position: 0 16px; }}
-}}
-</style>
-<div style="margin-top: 80px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;">
-    <div style="width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);">
-        {pipes_html}
-        <div style="position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 2px solid rgba(255,255,255,0.4);">
-            <span style="color: white; font-weight: bold; font-size: 20px; text-shadow: 1px 1px 3px black;">{percentage}%</span>
-        </div>
-    </div>
-    <div style="margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);">{tank_name}</div>
-</div>
-"""
+    html = f"<div style='margin-top: 80px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 2px solid rgba(255,255,255,0.4);'><span style='color: white; font-weight: bold; font-size: 20px; text-shadow: 1px 1px 3px black;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     st.markdown(html, unsafe_allow_html=True)
 
+# ॲमीटर डिझाईन
 def draw_ammeter(is_on, name):
     color = "#2ecc71" if is_on else "#e74c3c"
     rotation = "45deg" if is_on else "-45deg"
-    html = f"""
-<div style="text-align: center; margin-bottom: 10px;">
-    <div style="width: 60px; height: 30px; border: 2px solid #555; border-bottom: none; border-radius: 60px 60px 0 0; background: #fff; margin: 0 auto; position: relative; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);">
-        <div style="width: 2px; height: 26px; background: red; position: absolute; bottom: 0; left: 29px; transform-origin: bottom; transform: rotate({rotation}); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></div>
-    </div>
-    <div style="width: 16px; height: 16px; border-radius: 50%; background: {color}; margin: 5px auto; box-shadow: 0 0 10px {color}; border: 1px solid #fff;"></div>
-</div>
-"""
+    html = f"<div style='text-align: center; margin-bottom: 10px;'><div style='width: 60px; height: 30px; border: 2px solid #555; border-bottom: none; border-radius: 60px 60px 0 0; background: #fff; margin: 0 auto; position: relative; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);'><div style='width: 2px; height: 26px; background: red; position: absolute; bottom: 0; left: 29px; transform-origin: bottom; transform: rotate({rotation}); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);'></div></div><div style='width: 16px; height: 16px; border-radius: 50%; background: {color}; margin: 5px auto; box-shadow: 0 0 10px {color}; border: 1px solid #fff;'></div></div>"
     st.markdown(html, unsafe_allow_html=True)
 
+# नॉब डिझाईन
 def draw_knob(is_on, name):
     color = "#2ecc71" if is_on else "#e74c3c"
     rotation = "0deg" if is_on else "90deg" 
-    html = f"""
-<div style="text-align: center; margin-bottom: 10px;">
-    <div style="width: 50px; height: 50px; border-radius: 50%; background: #2c3e50; border: 3px solid {color}; margin: 0 auto; position: relative; transform: rotate({rotation}); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 2px 2px 6px rgba(0,0,0,0.4);">
-        <div style="width: 6px; height: 22px; background: {color}; position: absolute; top: 2px; left: 19px; border-radius: 3px;"></div>
-    </div>
-</div>
-"""
+    html = f"<div style='text-align: center; margin-bottom: 10px;'><div style='width: 50px; height: 50px; border-radius: 50%; background: #2c3e50; border: 3px solid {color}; margin: 0 auto; position: relative; transform: rotate({rotation}); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 2px 2px 6px rgba(0,0,0,0.4);'><div style='width: 6px; height: 22px; background: {color}; position: absolute; top: 2px; left: 19px; border-radius: 3px;'></div></div></div>"
     st.markdown(html, unsafe_allow_html=True)
 
-# सिम्युलेटरसाठी डमी डेटा 
+# ३. सिम्युलेटरसाठी डमी डेटा 
 tank1_lvl = 45
 tank2_lvl = 60
 ug_lvl = 75
@@ -82,7 +50,7 @@ col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
     # --- Control Panel ---
-    st.markdown("""<div style="border: 2px solid #444; padding: 15px; border-radius: 10px; background: #f8f9fa; margin-bottom: 20px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);"><h4 style="margin-top: 0; text-align: center; color: #2c3e50;">⚡ Control Panel</h4><hr style="margin: 5px 0 15px 0; border-color: #ccc;">""", unsafe_allow_html=True)
+    st.markdown("<div style='border: 2px solid #444; padding: 15px; border-radius: 10px; background: #f8f9fa; margin-bottom: 20px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);'><h4 style='margin-top: 0; text-align: center; color: #2c3e50;'>⚡ Control Panel</h4><hr style='margin: 5px 0 15px 0; border-color: #ccc;'>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1: 
         ug_pump = st.toggle("UG Pump", value=True)
@@ -96,7 +64,7 @@ with col_right:
     st.markdown("</div>", unsafe_allow_html=True)
 
     # --- Valves ---
-    st.markdown("""<div style="border: 2px solid #444; padding: 15px; border-radius: 10px; background: #f8f9fa; margin-bottom: 20px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);"><h4 style="margin-top: 0; text-align: center; color: #2c3e50;">🎛️ Valves</h4><hr style="margin: 5px 0 15px 0; border-color: #ccc;">""", unsafe_allow_html=True)
+    st.markdown("<div style='border: 2px solid #444; padding: 15px; border-radius: 10px; background: #f8f9fa; margin-bottom: 20px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);'><h4 style='margin-top: 0; text-align: center; color: #2c3e50;'>🎛️ Valves</h4><hr style='margin: 5px 0 15px 0; border-color: #ccc;'>", unsafe_allow_html=True)
     v1, v2, v3 = st.columns(3)
     with v1: 
         valve1 = st.toggle("V1 (UG)", value=False)
@@ -120,7 +88,7 @@ with col_right:
         status_msgs.append("सध्या सर्व पंप आणि वाल्व्ह बंद आहेत.")
 
     status_html = "".join([f"<li style='margin-bottom: 8px;'>{msg}</li>" for msg in status_msgs])
-    st.markdown(f"""<div style="border: 2px solid #e67e22; padding: 15px; border-radius: 10px; background: #fffdf5; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);"><h4 style="margin-top: 0; text-align: center; color: #d35400;">📋 स्थिती फलक</h4><hr style="margin: 5px 0 15px 0; border-color: #f39c12;"><ul style="font-size: 15px; color: #333; font-weight: 600; padding-left: 20px;">{status_html}</ul></div>""", unsafe_allow_html=True)
+    st.markdown(f"<div style='border: 2px solid #e67e22; padding: 15px; border-radius: 10px; background: #fffdf5; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);'><h4 style='margin-top: 0; text-align: center; color: #d35400;'>📋 स्थिती फलक</h4><hr style='margin: 5px 0 15px 0; border-color: #f39c12;'><ul style='font-size: 15px; color: #333; font-weight: 600; padding-left: 20px;'>{status_html}</ul></div>", unsafe_allow_html=True)
 
 with col_left:
     # --- टाक्या ---
