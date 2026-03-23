@@ -50,7 +50,7 @@ col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
     # --- Control Panel ---
-    st.markdown("<div style='border: 2px solid #444; padding: 10px; border-radius: 5px; background: #f8f9fa; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.05);'><h4 style='margin-top: 0; text-align: center; color: #2c3e50;'>⚡ Control Panel</h4><hr style='margin: 5px 0 15px 0; border-color: #ccc;'>", unsafe_allow_html=True)
+    st.markdown("<div style='border: 2px solid #444; padding: 10px; border-radius: 5px; background: #f8f9fa; margin-bottom: 15px; box-shadow: 1px 1px 5px rgba(0,0,0,0.05);'><h4 style='margin-top: 0; text-align: center; color: #2c3e50;'>⚡ Control Panel</h4><hr style='margin: 5px 0 10px 0; border-color: #ccc;'>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1: 
         ug_pump = st.toggle("UG Pump", value=True)
