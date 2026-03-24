@@ -6,7 +6,7 @@ st.set_page_config(page_title="Deogirkar Water Monitor", layout="wide")
 # १. प्रोफेशनल टायटल बॅनर (दोन ओळींमध्ये)
 st.markdown("""
 <div style='text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #4a6fa5;'>
-    <h1 style='color: #ffffff; font-size: 40px; margin: 0; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); letter-spacing: 2px;'>अभिप्राज्ञार्णव</h1>
+    <h1 style='color: #ffffff; font-size: 40px; margin: 0; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); letter-spacing: 2px;'>अभिप्राजामेयार्णव</h1>
     <h3 style='color: #81d4fa; font-size: 22px; margin: 8px 0 0 0; font-weight: 500; letter-spacing: 1px;'>पाणी व्यवस्थापन प्रणाली</h3>
 </div>
 """, unsafe_allow_html=True)
