@@ -2,39 +2,53 @@
 import streamlit as st
 
 st.set_page_config(page_title="Deogirkar Water Monitor", layout="wide")
-st.title("अभिराजमेयार्णव पाणी व्यवस्थापन प्रणाली")
-st.markdown("---")
 
-# ॲनिमेशन CSS
-st.markdown("<style>@keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }</style>", unsafe_allow_html=True)
+# १. प्रोफेशनल टायटल बॅनर (दोन ओळींमध्ये आणि आकर्षक रंगात)
+st.markdown("""
+<div style='text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 25px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #4a6fa5;'>
+    <h1 style='color: #ffffff; font-size: 40px; margin: 0; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); letter-spacing: 2px;'>अभिप्राज्ञार्णव</h1>
+    <h3 style='color: #81d4fa; font-size: 22px; margin: 8px 0 0 0; font-weight: 500; letter-spacing: 1px;'>पाणी व्यवस्थापन प्रणाली</h3>
+</div>
+""", unsafe_allow_html=True)
 
-# टाक्यांचे डिझाईन (जसेच्या तसे)
+# २. ॲनिमेशन CSS (पाणी पडणे, बुडबुडे आणि लहरी)
+css = "<style>@keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } } @keyframes ripple { 0% { transform: scaleX(0.9) translateY(0); opacity: 0.3; } 100% { transform: scaleX(1.1) translateY(-2px); opacity: 0.7; } } @keyframes bubbles { 0% { transform: translateY(0) scale(0.6); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-20px) scale(1.3); opacity: 0; } }</style>"
+st.markdown(css, unsafe_allow_html=True)
+
+# ३. टाक्या आणि 'लाईव्ह' पाण्याचे ॲनिमेशन
 def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
     tank_height = "160px" if tank_type == "underground" else "220px"
     tank_width = "100%" if tank_type == "underground" else "160px"
 
+    is_pouring = any(inlet['active'] for inlet in inlets)
+    
+    # पाण्याच्या पृष्ठभागावरील लहरी आणि बुडबुडे (जर पाणी पडत असेल तरच दिसतील)
+    surface_fx = ""
+    if is_pouring:
+        surface_fx = "<div style='position: absolute; top: -4px; left: 0; width: 100%; height: 8px; background: rgba(255,255,255,0.4); border-radius: 50%; animation: ripple 0.6s infinite alternate; z-index: 4;'></div><div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 25px; height: 10px; background: rgba(255,255,255,0.8); border-radius: 50%; animation: bubbles 0.4s infinite alternate; z-index: 5;'></div><div style='position: absolute; top: 5px; left: 40%; width: 10px; height: 10px; background: rgba(255,255,255,0.6); border-radius: 50%; animation: bubbles 0.5s infinite alternate-reverse; z-index: 5;'></div>"
+
     pipes_html = ""
     for idx, inlet in enumerate(inlets):
         offset = 50 if len(inlets) == 1 else (30 if idx == 0 else 70)
         active_pour = ""
         if inlet['active']:
-            active_pour = f"<div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.4s infinite linear; z-index: 1;'></div>"
+            active_pour = f"<div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.3s infinite linear; z-index: 1;'></div>"
         
         pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
-    html = f"<div style='margin-top: 80px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 2px solid rgba(255,255,255,0.4);'><span style='color: white; font-weight: bold; font-size: 20px; text-shadow: 1px 1px 3px black;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
+    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1);'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1.5s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 2px solid rgba(255,255,255,0.4);'>{surface_fx}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 10;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     st.markdown(html, unsafe_allow_html=True)
 
-# ॲमीटर डिझाईन (आता अधिक कॉम्पॅक्ट केले आहे: 50x25 px)
+# ॲमीटर डिझाईन
 def draw_ammeter(is_on, name):
     color = "#2ecc71" if is_on else "#e74c3c"
     rotation = "45deg" if is_on else "-45deg"
     html = f"<div style='text-align: center; margin-bottom: 0px;'><div style='width: 50px; height: 25px; border: 2px solid #555; border-bottom: none; border-radius: 50px 50px 0 0; background: #fff; margin: 0 auto; position: relative; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);'><div style='width: 2px; height: 22px; background: red; position: absolute; bottom: 0; left: 24px; transform-origin: bottom; transform: rotate({rotation}); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);'></div></div><div style='width: 12px; height: 12px; border-radius: 50%; background: {color}; margin: 3px auto; box-shadow: 0 0 8px {color}; border: 1px solid #fff;'></div></div>"
     st.markdown(html, unsafe_allow_html=True)
 
-# नॉब डिझाईन (आता अधिक कॉम्पॅक्ट केले आहे: 40x40 px)
+# नॉब डिझाईन
 def draw_knob(is_on, name):
     color = "#2ecc71" if is_on else "#e74c3c"
     rotation = "0deg" if is_on else "90deg" 
@@ -49,7 +63,7 @@ ug_lvl = 75
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
-    # --- Control Panel (Compact) ---
+    # --- Control Panel ---
     st.markdown("<div style='border: 2px solid #444; padding: 10px; border-radius: 8px; background: #f8f9fa; margin-bottom: 12px; box-shadow: 2px 2px 6px rgba(0,0,0,0.05);'><h5 style='margin-top: 0; margin-bottom: 5px; text-align: center; color: #2c3e50;'>⚡ Control Panel</h5><hr style='margin: 2px 0 10px 0; border-color: #ccc;'>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1: 
@@ -63,7 +77,7 @@ with col_right:
         draw_ammeter(bw2_pump, "BW2")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- Valves (Compact) ---
+    # --- Valves ---
     st.markdown("<div style='border: 2px solid #444; padding: 10px; border-radius: 8px; background: #f8f9fa; margin-bottom: 15px; box-shadow: 2px 2px 6px rgba(0,0,0,0.05);'><h5 style='margin-top: 0; margin-bottom: 5px; text-align: center; color: #2c3e50;'>🎛️ Valves</h5><hr style='margin: 2px 0 10px 0; border-color: #ccc;'>", unsafe_allow_html=True)
     v1, v2, v3 = st.columns(3)
     with v1: 
@@ -77,7 +91,7 @@ with col_right:
         draw_knob(valve3, "V3")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- Status Board (स्थिती फलक) ---
+    # --- Status Board ---
     status_msgs = []
     if ug_pump: status_msgs.append("🔸 टँकरचा पंप सुरू आहे.")
     if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
