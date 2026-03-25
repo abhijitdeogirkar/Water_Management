@@ -76,7 +76,7 @@ with col_right:
         sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
         sim_solar = st.checkbox("☀️ सोलर वीज निर्मिती चालू करा (Test)", value=True)
 
-    # --- ☀️ सुधारित सोलर ऊर्जा (Sofar) कार्ड ---
+    # --- ☀️ सुधारित सोलर ऊर्जा (Sofar) कार्ड (लहान फॉन्ट आणि अचूक चित्रे) ---
     solar_glow = "animation: sunGlow 3s infinite;" if sim_solar else "border: 1px solid #ccc;"
     live_power = "3.2 kW" if sim_solar else "0.0 kW"
     
@@ -89,18 +89,18 @@ with col_right:
         status_color = "#c62828"
         status_text = "🔴 सौर ऊर्जेची निर्मिती बंद आहे"
 
-    # SVG Graphics (तुमच्या फोटोप्रमाणे सोलर पॅनेल)
+    # SVG Graphics (तुमच्या फोटोप्रमाणे सोलर पॅनेल आणि ग्रिड पोल)
     solar_panel_svg = """<svg width="50" height="50" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><line x1="20" y1="2" x2="20" y2="7" stroke="#FFA500" stroke-width="2"/><line x1="20" y1="38" x2="20" y2="33" stroke="#FFA500" stroke-width="2"/><line x1="2" y1="20" x2="7" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="38" y1="20" x2="33" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="7" x2="11" y2="11" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="33" x2="29" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="33" x2="11" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="7" x2="29" y2="11" stroke="#FFA500" stroke-width="2"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/><line x1="40" y1="60" x2="77" y2="55" stroke="#ddd" stroke-width="1.5"/><line x1="53" y1="35" x2="42" y2="82" stroke="#ddd" stroke-width="1.5"/><line x1="68" y1="32" x2="57" y2="80" stroke="#ddd" stroke-width="1.5"/></svg>"""
+    grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
 
     with st.container(border=True):
         st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; {solar_glow}'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
         
-        # फॉन्ट साईज लहान करून साध्या टेक्स्टमध्ये आकडे
+        # फॉन्ट साईज लहान करून साध्या टेक्स्टमध्ये आकडे दाखवले आहेत
         s1, s2 = st.columns(2)
         with s1: st.markdown(f"<div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती (Live)</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{live_power}</div></div>", unsafe_allow_html=True)
         with s2: st.markdown(f"<div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>14.5 kWh</div></div>", unsafe_allow_html=True)
         
-        # सोलर प्रवाहाचे ॲनिमेशन (लाल टॉवरसह 🗼)
         solar_animation_html = f"""
         <div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 15px;'>
             <div style='display: flex; align-items: center; justify-content: space-between;'>
@@ -108,7 +108,7 @@ with col_right:
                 <div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div>
                 <div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div>
                 <div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div>
-                <div style='text-align: center; width: 60px;'><div style='font-size: 28px;'>🗼</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div>
+                <div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div>
             </div>
             <div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div>
         </div>
