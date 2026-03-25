@@ -100,7 +100,7 @@ if trigger_siren:
             if (audioCtx == null) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            if (osc1 != null) return; // आधीच चालू असेल तर काही करू नका
+            if (osc1 != null) return;
 
             osc1 = audioCtx.createOscillator();
             osc2 = audioCtx.createOscillator();
@@ -112,7 +112,7 @@ if trigger_siren:
             osc1.connect(gainNode);
             osc2.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            gainNode.gain.value = 0.3; // आवाज पातळी
+            gainNode.gain.value = 0.3;
 
             osc1.start();
             osc2.start();
@@ -129,7 +129,7 @@ if trigger_siren:
                     if (freq < 400) rising = true;
                 }
                 osc1.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                osc2.frequency.setValueAtTime(freq + 5, audioCtx.currentTime); // डरावना आवाज बनवण्यासाठी
+                osc2.frequency.setValueAtTime(freq + 5, audioCtx.currentTime);
             }, 15);
         }
 
@@ -140,7 +140,6 @@ if trigger_siren:
         }
     </script>
     """
-    # Components.html वापरून हा कोड सुरक्षितपणे रेंडर केला आहे
     components.html(siren_html, height=250)
 
 
@@ -236,14 +235,16 @@ with cam_col1:
 with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
-# --- मराठी बोलणारा अलर्ट ---
+# --- मराठी बोलणारा अलर्ट (फक्त पाण्याच्या व्हॉल्व्ह आणि पंपासाठी) ---
 alert_to_speak = ""
-if trigger_siren:
-    alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. अलार्म सुरू झाला आहे."
-elif (valve_t1 or valve_t2) and not any_pump_on:
+if (valve_t1 or valve_t2) and not any_pump_on:
     alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
 elif tank1_pouring and tank2_pouring:
     alert_to_speak = "टाकी एक आणि टाकी दोन मध्ये पाणी भरत आहे."
+elif tank1_pouring:
+    alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
+elif tank2_pouring:
+    alert_to_speak = "टाकी दोन मध्ये पाणी भरत आहे."
 
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
