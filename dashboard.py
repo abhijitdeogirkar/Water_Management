@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
@@ -11,7 +12,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# २. CSS (लाटा, पाणी, ऊर्जेचा प्रवाह आणि रेकॉर्डिंग डॉट)
+# २. CSS (लाटा, पाणी आणि ऊर्जेचा प्रवाह)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -200,23 +201,72 @@ with col_left:
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# --- 📹 नवीन: सुरक्षा कॅमेरे (CCTV) विभाग (Placeholder) ---
+# --- 📹 सुरक्षा कॅमेरे (CCTV) विभाग ---
 # ---------------------------------------------------------
 st.markdown("<br><hr>", unsafe_allow_html=True)
 st.markdown("<h3 style='color: #1e3c72; text-align: center;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h3>", unsafe_allow_html=True)
 
-# काळ्या रंगाची स्क्रीन आणि ब्लिंकिंग रेड डॉट
 placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
 recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
 
 cam_col1, cam_col2 = st.columns(2)
-
 with cam_col1:
-    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...<br>(Waiting for IP Address)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार (Main Gate)</div>", unsafe_allow_html=True)
-
 with cam_col2:
-    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...<br>(Waiting for IP Address)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
-st.info("💡 **माहिती:** येथे तुमचे खरे सीसीटीव्ही कॅमेरे दिसतील. जेव्हा तुम्हाला तुमच्या कॅमेऱ्याची लिंक (RTSP URL) किंवा IP ॲड्रेस मिळेल, तेव्हा मला सांगा. तोपर्यंत हे 'Connecting' ॲनिमेशन चालू राहील.")
+# ---------------------------------------------------------
+# --- 📢 ऑडिओ आणि व्हाईस अलर्ट (Voice & Sound Engine) ---
+# ---------------------------------------------------------
+is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
+
+# बोलण्यासाठी मुख्य मेसेज निवडणे
+alert_to_speak = ""
+if (valve_t1 or valve_t2) and not any_pump_on:
+    alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
+elif tank1_pouring and tank2_pouring:
+    alert_to_speak = "टाकी एक आणि टाकी दोन मध्ये पाणी भरत आहे."
+elif tank1_pouring:
+    alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
+elif tank2_pouring:
+    alert_to_speak = "टाकी दोन मध्ये पाणी भरत आहे."
+elif sim_tanker:
+    alert_to_speak = "टँकरचे पाणी सुरू झाले आहे."
+elif garden_watering:
+    alert_to_speak = "गार्डन मध्ये पाणी दिले जात आहे."
+elif not any_pump_on:
+    alert_to_speak = "सर्व पंप बंद आहेत."
+
+# सेशन स्टेट (वारंवार एकच मेसेज बोलू नये म्हणून)
+if 'last_speech' not in st.session_state:
+    st.session_state.last_speech = ""
+
+tts_js = ""
+if alert_to_speak and alert_to_speak != st.session_state.last_speech:
+    st.session_state.last_speech = alert_to_speak
+    tts_js = f"""
+    <script>
+        var msg = new SpeechSynthesisUtterance("{alert_to_speak}");
+        msg.lang = 'mr-IN'; // मराठी भाषा
+        msg.rate = 0.95; // बोलण्याचा वेग
+        window.speechSynthesis.speak(msg);
+    </script>
+    """
+
+# पाण्याचा आवाज (फक्त पाणी पडत असेल तेव्हा)
+water_sound_js = ""
+if is_any_water_pouring:
+    water_sound_js = """
+    <audio id="waterSound" autoplay loop>
+        <source src="https://cdn.pixabay.com/download/audio/2021/08/09/audio_88447bc23b.mp3" type="audio/mpeg">
+    </audio>
+    <script>
+        document.getElementById("waterSound").volume = 0.4;
+    </script>
+    """
+
+# HTML आणि JS ब्राउझरमध्ये पाठवणे
+if tts_js or water_sound_js:
+    components.html(tts_js + water_sound_js, height=0, width=0)
