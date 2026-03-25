@@ -11,13 +11,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# २. CSS (लाटा, पाणी आणि ऊर्जेचा प्रवाह)
+# २. CSS (लाटा, पाणी, ऊर्जेचा प्रवाह आणि रेकॉर्डिंग डॉट)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
 @keyframes waveMove { 0% { background-position-x: 0px; } 100% { background-position-x: 40px; } }
 @keyframes sunGlow { 0% { box-shadow: 0 0 5px #fbc02d; } 50% { box-shadow: 0 0 10px #fbc02d; } 100% { box-shadow: 0 0 5px #fbc02d; } }
 @keyframes energyFlow { 0% { background-position: 0px 0; } 100% { background-position: 20px 0; } }
+@keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -89,14 +90,13 @@ with col_right:
         status_color = "#c62828"
         status_text = "🔴 सौर ऊर्जेची निर्मिती बंद आहे"
 
-    # SVG Graphics (सोलर पॅनेल आणि 'जुना' करड्या रंगाचा ग्रीड टॉवर)
+    # SVG Graphics
     solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><line x1="20" y1="2" x2="20" y2="7" stroke="#FFA500" stroke-width="2"/><line x1="20" y1="38" x2="20" y2="33" stroke="#FFA500" stroke-width="2"/><line x1="2" y1="20" x2="7" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="38" y1="20" x2="33" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="7" x2="11" y2="11" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="33" x2="29" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="33" x2="11" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="7" x2="29" y2="11" stroke="#FFA500" stroke-width="2"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/><line x1="40" y1="60" x2="77" y2="55" stroke="#ddd" stroke-width="1.5"/><line x1="53" y1="35" x2="42" y2="82" stroke="#ddd" stroke-width="1.5"/><line x1="68" y1="32" x2="57" y2="80" stroke="#ddd" stroke-width="1.5"/></svg>"""
     grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
 
     with st.container(border=True):
         st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; {solar_glow}'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
         
-        # मोबाईलसाठी आकडे एका बाजूला एक
         st.markdown(f"""
         <div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'>
             <div style='text-align: center;'>
@@ -198,3 +198,25 @@ with col_left:
         <p style='font-size: 12px; color: #555; margin: 0;'>अंडरग्राउंड टाकीतून पाणी</p>
     </div>
     """, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# --- 📹 नवीन: सुरक्षा कॅमेरे (CCTV) विभाग (Placeholder) ---
+# ---------------------------------------------------------
+st.markdown("<br><hr>", unsafe_allow_html=True)
+st.markdown("<h3 style='color: #1e3c72; text-align: center;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h3>", unsafe_allow_html=True)
+
+# काळ्या रंगाची स्क्रीन आणि ब्लिंकिंग रेड डॉट
+placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
+recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
+
+cam_col1, cam_col2 = st.columns(2)
+
+with cam_col1:
+    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...<br>(Waiting for IP Address)</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार (Main Gate)</div>", unsafe_allow_html=True)
+
+with cam_col2:
+    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...<br>(Waiting for IP Address)</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
+
+st.info("💡 **माहिती:** येथे तुमचे खरे सीसीटीव्ही कॅमेरे दिसतील. जेव्हा तुम्हाला तुमच्या कॅमेऱ्याची लिंक (RTSP URL) किंवा IP ॲड्रेस मिळेल, तेव्हा मला सांगा. तोपर्यंत हे 'Connecting' ॲनिमेशन चालू राहील.")
