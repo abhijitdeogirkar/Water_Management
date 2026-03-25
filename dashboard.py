@@ -4,17 +4,41 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS
+# १. प्रगत CSS (सर्व ॲनिमेशन्स आणि सायरन फ्लॅश)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
 @keyframes waveMove { 0% { background-position-x: 0px; } 100% { background-position-x: 40px; } }
 @keyframes sunGlow { 0% { box-shadow: 0 0 5px #fbc02d; } 50% { box-shadow: 0 0 10px #fbc02d; } 100% { box-shadow: 0 0 5px #fbc02d; } }
 @keyframes energyFlow { 0% { background-position: 0px 0; } 100% { background-position: 20px 0; } }
-@keyframes sirenFlash { 0% { background-color: #ffebee; border: 3px solid #f44336; } 50% { background-color: #f44336; color: white; box-shadow: 0 0 30px #f44336; } 100% { background-color: #ffebee; border: 3px solid #f44336; } }
+@keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+@keyframes sirenFlash { 
+    0% { background-color: #ffebee; border: 4px solid #d32f2f; } 
+    50% { background-color: #d32f2f; color: white; box-shadow: 0 0 40px #d32f2f; } 
+    100% { background-color: #ffebee; border: 4px solid #d32f2f; } 
+}
+.flashing-alert {
+    animation: sirenFlash 0.5s infinite;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+.normal-banner {
+    text-align: center; 
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+    padding: 12px; 
+    border-radius: 8px; 
+    margin-bottom: 20px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15); 
+    border: 1px solid #4a6fa5;
+}
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
+
+# 🌟 'Top Banner' साठी राखीव जागा (येथेच लाल रंग फ्लॅश होईल)
+top_banner = st.empty()
 
 # ⚙️ टेस्टिंग सिम्युलेटर
 with st.sidebar:
@@ -25,20 +49,6 @@ with st.sidebar:
     st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
 
-# २. मुख्य अलार्म लॉजिक
-if 'alarm_armed' not in st.session_state:
-    st.session_state.alarm_armed = False
-
-trigger_siren = st.session_state.alarm_armed and simulate_motion
-
-if not trigger_siren:
-    st.markdown("""
-    <div style='text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5;'>
-        <h2 style='color: #ffffff; margin: 0; font-weight: 800; letter-spacing: 1px;'>अभिप्राजामेयार्णव</h2>
-        <h4 style='color: #81d4fa; margin: 3px 0 0 0; font-weight: 500;'>पाणी, ऊर्जा व सुरक्षा व्यवस्थापन प्रणाली</h4>
-    </div>
-    """, unsafe_allow_html=True)
-
 # ३. टाक्यांचे डिझाईन
 def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
@@ -46,6 +56,7 @@ def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
     dark_wave_color = "%23004b7c" if tank_type == "overhead" else "%23003366" 
     tank_height = "160px" if tank_type == "underground" else "220px"
     tank_width = "100%" if tank_type == "underground" else "160px"
+
     is_pouring = any(inlet['active'] for inlet in inlets)
     
     if not is_pouring:
@@ -74,84 +85,14 @@ def draw_knob(is_on):
 
 tank1_lvl = 45; tank2_lvl = 60; ug_lvl = 75
 
-# ---------------------------------------------------------
-# 🚨 सर्वात महत्त्वाचे: घुुसखोर आल्यावर दिसणारा महा-अलार्म
-# ---------------------------------------------------------
-if trigger_siren:
-    siren_html = """
-    <div style="background-color: #ffebee; border: 4px solid #d32f2f; border-radius: 12px; padding: 20px; text-align: center; animation: sirenFlash 0.5s infinite; margin-bottom: 20px;">
-        <h1 style="color: #d32f2f; margin: 0; font-size: 36px; font-weight: 900;">🚨 सावधान! घुसखोर आढळला! 🚨</h1>
-        <p style="font-size: 20px; font-weight: bold; color: #333;">घरात संशयास्पद हालचाल टिपली गेली आहे.</p>
-        <button onclick="playSiren()" style="background-color: #d32f2f; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0px 5px 15px rgba(211,47,47,0.5); margin: 10px;">
-            🔊 सायरन वाजवा (PLAY SIREN)
-        </button>
-        <button onclick="stopSiren()" style="background-color: #333; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 24px; font-weight: bold; cursor: pointer; margin: 10px;">
-            🔇 सायरन बंद करा
-        </button>
-    </div>
-
-    <script>
-        var audioCtx = null;
-        var osc1 = null;
-        var osc2 = null;
-        var sirenInterval = null;
-
-        function playSiren() {
-            if (audioCtx == null) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (osc1 != null) return;
-
-            osc1 = audioCtx.createOscillator();
-            osc2 = audioCtx.createOscillator();
-            var gainNode = audioCtx.createGain();
-
-            osc1.type = 'square';
-            osc2.type = 'sawtooth';
-
-            osc1.connect(gainNode);
-            osc2.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            gainNode.gain.value = 0.3;
-
-            osc1.start();
-            osc2.start();
-
-            var freq = 400;
-            var rising = true;
-
-            sirenInterval = setInterval(function() {
-                if (rising) {
-                    freq += 15;
-                    if (freq > 900) rising = false;
-                } else {
-                    freq -= 15;
-                    if (freq < 400) rising = true;
-                }
-                osc1.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                osc2.frequency.setValueAtTime(freq + 5, audioCtx.currentTime);
-            }, 15);
-        }
-
-        function stopSiren() {
-            if (sirenInterval) clearInterval(sirenInterval);
-            if (osc1) { osc1.stop(); osc1.disconnect(); osc1 = null; }
-            if (osc2) { osc2.stop(); osc2.disconnect(); osc2 = null; }
-        }
-    </script>
-    """
-    components.html(siren_html, height=250)
-
-
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
     # --- 🛡️ सुरक्षा प्रणाली (Burglar Alarm) पॅनेल ---
     with st.container(border=True):
-        alarm_bg = "#ffebee" if trigger_siren else ("#e8f5e9" if st.session_state.alarm_armed else "#f5f5f5")
-        st.markdown(f"<div style='background-color: {alarm_bg}; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; transition: 0.3s;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
-        st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed, help="घराबाहेर जाताना हे चालू करा")
-        if st.session_state.alarm_armed:
+        st.markdown(f"<div style='background-color: #f5f5f5; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
+        alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", key="alarm_toggle", help="घराबाहेर जाताना हे चालू करा")
+        if alarm_armed:
             st.success("✅ सिस्टीम ॲक्टिव्ह आहे. हालचाल टिपली जाईल.")
         else:
             st.warning("⚠️ सिस्टीम बंद आहे.")
@@ -194,24 +135,6 @@ with col_right:
     ug_pouring_from_tanker = sim_tanker
     garden_watering = ug_pump and not valve_t1 and not valve_t2
 
-    with st.container(border=True):
-        st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>📋 स्थितीदर्शक</h5></div>", unsafe_allow_html=True)
-        status_msgs = []
-        if trigger_siren: status_msgs.append("🚨 घुसखोर आढळला! अलार्म सुरू आहे.")
-        if not any_pump_on and not sim_tanker: status_msgs.append("⚠️ सर्व पंप बंद आहेत.")
-        else:
-            if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
-            if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
-            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
-            if sim_tanker: status_msgs.append("🚚 टँकरद्वारे पाणी येत आहे.")
-        if tank1_pouring: status_msgs.append("🔹 'Tank 1' मध्ये पाणी भरत आहे.")
-        if tank2_pouring: status_msgs.append("🔹 'Tank 2' मध्ये पाणी भरत आहे.")
-        if ug_pouring_from_bw: status_msgs.append("🔹 बोअरवेलचे पाणी 'UG Tank' मध्ये जात आहे.")
-        if garden_watering: status_msgs.append("🌿 पाणी 'गार्डन/झाडांना' दिले जात आहे.")
-        
-        status_html = "".join([f"<li style='margin-bottom: 5px;'>{msg}</li>" for msg in status_msgs])
-        st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
-
 with col_left:
     t1_col, t2_col = st.columns(2)
     with t1_col: draw_tank("Tank 1", tank1_lvl, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
@@ -235,7 +158,56 @@ with cam_col1:
 with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
-# --- मराठी बोलणारा अलर्ट (फक्त पाण्याच्या व्हॉल्व्ह आणि पंपासाठी) ---
+# ---------------------------------------------------------
+# 🚨 सर्वात महत्त्वाचे: अलार्म आणि सायरन लॉजिक (१००% खात्रीशीर)
+# ---------------------------------------------------------
+# लॉजिक इथे तपासले जाते, जेणेकरून बटण दाबल्यावर लगेच रिस्पॉन्स मिळेल.
+trigger_siren = alarm_armed and simulate_motion
+
+if trigger_siren:
+    # १. लाल रंगाचा फ्लॅशिंग बॅनर सर्वात वर भरणे (st.empty च्या जागी)
+    top_banner.markdown("""
+    <div class='flashing-alert'>
+        <h1 style='color: white; margin: 0; font-size: 36px; font-weight: 900; text-shadow: 2px 2px 5px black;'>🚨 सावधान! घरात घुसखोर आढळला! 🚨</h1>
+        <h4 style='color: white; margin: 5px 0 0 0;'>घराच्या परिसरात संशयास्पद हालचाल टिपली गेली आहे.</h4>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # २. सायरनचा आवाज (थेट HTML5 ऑडिओ टॅग)
+    # यात दोन लिंक्स आहेत, जेणेकरून एक फेल झाली तरी दुसरी वाजेलच!
+    siren_audio_html = """
+    <audio autoplay loop>
+        <source src="https://upload.wikimedia.org/wikipedia/commons/4/40/Siren_Noise.ogg" type="audio/ogg">
+        <source src="https://actions.google.com/sounds/v1/alarms/burglar_alarm.ogg" type="audio/ogg">
+    </audio>
+    """
+    st.markdown(siren_audio_html, unsafe_allow_html=True)
+
+else:
+    # जर अलार्म नसेल, तर निळा रंगाचा नेहमीचा बॅनर दिसेल
+    top_banner.markdown("""
+    <div class='normal-banner'>
+        <h2 style='color: #ffffff; margin: 0; font-weight: 800; letter-spacing: 1px;'>अभिप्राजामेयार्णव</h2>
+        <h4 style='color: #81d4fa; margin: 3px 0 0 0; font-weight: 500;'>पाणी, ऊर्जा व सुरक्षा व्यवस्थापन प्रणाली</h4>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# 📢 पाण्याचा आवाज आणि मराठी बोलणारा अलर्ट (फक्त पाण्यासाठी)
+# ---------------------------------------------------------
+is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
+
+# पाण्याचा आवाज (जर सायरन वाजत नसेल तरच)
+if is_any_water_pouring and not trigger_siren:
+    water_audio_html = """
+    <audio autoplay loop id="waterAudio">
+        <source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg">
+    </audio>
+    <script>document.getElementById("waterAudio").volume = 0.4;</script>
+    """
+    st.markdown(water_audio_html, unsafe_allow_html=True)
+
+# मराठी बोलणारा अलर्ट (फक्त पाण्याच्या व्हॉल्व्ह आणि पंपासाठी)
 alert_to_speak = ""
 if (valve_t1 or valve_t2) and not any_pump_on:
     alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
@@ -249,7 +221,7 @@ elif tank2_pouring:
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
 
-if alert_to_speak and alert_to_speak != st.session_state.last_speech:
+if alert_to_speak and alert_to_speak != st.session_state.last_speech and not trigger_siren:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
     components.html(tts_js, height=0, width=0)
