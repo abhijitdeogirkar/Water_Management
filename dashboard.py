@@ -83,7 +83,7 @@ def draw_control_panel(is_solar_active=True, live_power="0.0 kW", total_daily="0
     st.markdown(html_code, unsafe_allow_html=True)
 
 # ४. गुगल शीटमधून डेटा वाचणे (सिम्युलेशनसाठी आपण रँडम आकडे घेऊया)
-SHEET_URL = "तुमची_GOOGLE_SHEET_ची_SHARE_LINK_ येते_टाका"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1oys9fFlUwlwiw1dzYwWMbu0AiZuCszwPLzZWpb34_rA/edit?usp=sharing"
 csv_url = SHEET_URL.replace('/edit?usp=sharing', '/export?format=csv')
 
 try:
