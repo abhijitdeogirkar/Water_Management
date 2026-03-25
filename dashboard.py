@@ -181,10 +181,26 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# --- 📢 १००% खात्रीशीर ऑडिओ आणि सायरन अलर्ट (Direct DOM) ---
+# --- 📢 १००% खात्रीशीर ऑडिओ (Streamlit Native Audio Player) ---
 # ---------------------------------------------------------
+st.markdown("---")
+st.markdown("### 🔊 सिस्टीम ऑडिओ (System Audio)")
 
-# १. मराठी बोलणारा अलर्ट (Text-To-Speech)
+is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
+
+# सायरनचा आवाज
+if trigger_siren:
+    st.error("🚨 सायरन सुरू आहे! (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
+    st.audio("https://actions.google.com/sounds/v1/alarms/burglar_alarm.ogg", format="audio/ogg", autoplay=True)
+
+# पाण्याचा आवाज (जर सायरन बंद असेल तरच)
+elif is_any_water_pouring:
+    st.info("🌊 पाण्याचा प्रवाह सुरू आहे... (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
+    st.audio("https://actions.google.com/sounds/v1/water/stream_water.ogg", format="audio/ogg", autoplay=True)
+else:
+    st.write("शांतता... सर्व पंप आणि अलार्म बंद आहेत.")
+
+# १. मराठी बोलणारा अलर्ट (Text-To-Speech) - हा कधीच ब्लॉक होत नाही
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. अलार्म सुरू झाला आहे."
@@ -204,17 +220,3 @@ if alert_to_speak and alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
     components.html(tts_js, height=0, width=0)
-
-# २. सायरन आणि पाण्याचा आवाज (HTML5 Audio tag थेट DOM मध्ये)
-is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
-
-audio_html = ""
-if trigger_siren:
-    # Wikimedia Commons Siren URL
-    audio_html += '<audio autoplay loop><source src="https://upload.wikimedia.org/wikipedia/commons/4/40/Siren_Noise.ogg" type="audio/ogg"></audio>'
-elif is_any_water_pouring:
-    # Wikimedia Commons Water Pouring URL
-    audio_html += '<audio autoplay loop><source src="https://upload.wikimedia.org/wikipedia/commons/b/b5/Water_pouring.ogg" type="audio/ogg"></audio>'
-
-if audio_html:
-    st.markdown(audio_html, unsafe_allow_html=True)
