@@ -11,13 +11,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# २. CSS (लाटा आणि पाणी)
+# २. CSS (लाटा, पाणी आणि ऊर्जेचा प्रवाह)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
 @keyframes waveMove { 0% { background-position-x: 0px; } 100% { background-position-x: 40px; } }
-/* Solar Card Glow Effect */
 @keyframes sunGlow { 0% { box-shadow: 0 0 5px #fbc02d; } 50% { box-shadow: 0 0 15px #fbc02d; } 100% { box-shadow: 0 0 5px #fbc02d; } }
+@keyframes energyFlow { 0% { background-position: 0px 0; } 100% { background-position: 20px 0; } }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -71,14 +71,45 @@ tank1_lvl = 45; tank2_lvl = 60; ug_lvl = 75
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
-    # --- ☀️ नवीन: सोलर ऊर्जा (Sofar) कार्ड ---
+    # ⚙️ टँकर व सोलर सिम्युलेटर (लॉजिक कंट्रोलसाठी)
+    with st.expander("⚙️ टेस्टिंग सिम्युलेटर"):
+        sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
+        sim_solar = st.checkbox("☀️ सोलर वीज निर्मिती चालू करा (Test)", value=True)
+
+    # --- ☀️ सोलर ऊर्जा (Sofar) कार्ड (ॲनिमेशनसह) ---
+    solar_glow = "animation: sunGlow 3s infinite;" if sim_solar else "border: 1px solid #ccc;"
+    live_power = "3.2 kW" if sim_solar else "0.0 kW"
+    
+    # ॲनिमेशन लॉजिक (निळ्या डॉटेड लाईन्स)
+    if sim_solar:
+        line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;"
+        status_color = "#2e7d32"
+        status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे"
+    else:
+        line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+        status_color = "#c62828"
+        status_text = "🔴 सौर ऊर्जेची निर्मिती बंद आहे"
+
     with st.container(border=True):
-        st.markdown("<div style='background-color: #fffde7; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #fbc02d; animation: sunGlow 3s infinite;'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color: #fffde7; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; {solar_glow}'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
         s1, s2 = st.columns(2)
-        with s1:
-            st.metric(label="सध्याची निर्मिती (Live)", value="3.2 kW", delta="Active")
-        with s2:
-            st.metric(label="आजची एकूण वीज", value="14.5 kWh")
+        with s1: st.metric(label="सध्याची निर्मिती (Live)", value=live_power)
+        with s2: st.metric(label="आजची एकूण वीज", value="14.5 kWh")
+        
+        # सोलर प्रवाहाचे ॲनिमेशन (UI)
+        solar_animation_html = f"""
+        <div style='background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-top: 10px;'>
+            <div style='display: flex; align-items: center; justify-content: space-between;'>
+                <div style='text-align: center;'><div style='font-size: 28px;'>☀️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div>
+                <div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div>
+                <div style='text-align: center;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div>
+                <div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div>
+                <div style='text-align: center;'><div style='font-size: 28px;'>⚡</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Grid/Home</div></div>
+            </div>
+            <div style='text-align: center; margin-top: 15px; font-weight: bold; font-size: 14px; color: {status_color};'>{status_text}</div>
+        </div>
+        """
+        st.markdown(solar_animation_html, unsafe_allow_html=True)
 
     # --- कार्ड १: स्थितीदर्शक बोर्ड ---
     status_card = st.empty()
@@ -98,10 +129,6 @@ with col_right:
         with v1: valve_t1 = st.toggle("V1 (Tank 1)", value=False); draw_knob(valve_t1)
         with v2: valve_t2 = st.toggle("V2 (Tank 2)", value=False); draw_knob(valve_t2)
         with v3: valve_ug = st.toggle("V3 (UG Tank)", value=False); draw_knob(valve_ug)
-
-    # ⚙️ टँकर सिम्युलेटर
-    with st.expander("⚙️ टेस्टिंग सिम्युलेटर"):
-        sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
 
     # --- 🧠 प्रगत स्मार्ट लॉजिक ---
     any_pump_on = ug_pump or bw1_pump or bw2_pump
