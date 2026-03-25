@@ -181,8 +181,10 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# --- 📢 १००% खात्रीशीर ऑडिओ आणि सायरन अलर्ट (Google Sounds) ---
+# --- 📢 १००% खात्रीशीर ऑडिओ आणि सायरन अलर्ट (Direct DOM) ---
 # ---------------------------------------------------------
+
+# १. मराठी बोलणारा अलर्ट (Text-To-Speech)
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. अलार्म सुरू झाला आहे."
@@ -198,19 +200,21 @@ elif tank2_pouring:
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
 
-tts_js = ""
 if alert_to_speak and alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
+    components.html(tts_js, height=0, width=0)
 
-# 🌟 गुगलच्या सर्व्हरवरून खात्रीशीर सायरन आणि पाण्याचा आवाज 🌟
+# २. सायरन आणि पाण्याचा आवाज (HTML5 Audio tag थेट DOM मध्ये)
 is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
 
-# पाण्याचा आवाज (Google Action Sounds)
-water_sound_js = """<audio id="wSound" autoplay loop><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("wSound").volume = 0.4; document.getElementById("wSound").play();</script>""" if is_any_water_pouring else ""
+audio_html = ""
+if trigger_siren:
+    # Wikimedia Commons Siren URL
+    audio_html += '<audio autoplay loop><source src="https://upload.wikimedia.org/wikipedia/commons/4/40/Siren_Noise.ogg" type="audio/ogg"></audio>'
+elif is_any_water_pouring:
+    # Wikimedia Commons Water Pouring URL
+    audio_html += '<audio autoplay loop><source src="https://upload.wikimedia.org/wikipedia/commons/b/b5/Water_pouring.ogg" type="audio/ogg"></audio>'
 
-# सायरनचा भयंकर आवाज (Google Action Sounds - Burglar Alarm)
-siren_sound_js = """<audio id="sSnd" autoplay loop><source src="https://actions.google.com/sounds/v1/alarms/burglar_alarm.ogg" type="audio/ogg"></audio><script>document.getElementById("sSnd").volume = 1.0; document.getElementById("sSnd").play();</script>""" if trigger_siren else ""
-
-if tts_js or water_sound_js or siren_sound_js:
-    components.html(tts_js + water_sound_js + siren_sound_js, height=0, width=0)
+if audio_html:
+    st.markdown(audio_html, unsafe_allow_html=True)
