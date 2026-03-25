@@ -181,26 +181,14 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# --- 📢 १००% खात्रीशीर ऑडिओ (Streamlit Native Audio Player) ---
+# --- 📢 १००% खात्रीशीर ऑडिओ आणि सायरन (MP3 + Web Audio API) ---
 # ---------------------------------------------------------
 st.markdown("---")
 st.markdown("### 🔊 सिस्टीम ऑडिओ (System Audio)")
 
 is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
 
-# सायरनचा आवाज
-if trigger_siren:
-    st.error("🚨 सायरन सुरू आहे! (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
-    st.audio("https://actions.google.com/sounds/v1/alarms/burglar_alarm.ogg", format="audio/ogg", autoplay=True)
-
-# पाण्याचा आवाज (जर सायरन बंद असेल तरच)
-elif is_any_water_pouring:
-    st.info("🌊 पाण्याचा प्रवाह सुरू आहे... (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
-    st.audio("https://actions.google.com/sounds/v1/water/stream_water.ogg", format="audio/ogg", autoplay=True)
-else:
-    st.write("शांतता... सर्व पंप आणि अलार्म बंद आहेत.")
-
-# १. मराठी बोलणारा अलर्ट (Text-To-Speech) - हा कधीच ब्लॉक होत नाही
+# १. मराठी बोलणारा अलर्ट (Text-To-Speech) 
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. अलार्म सुरू झाला आहे."
@@ -220,3 +208,49 @@ if alert_to_speak and alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
     components.html(tts_js, height=0, width=0)
+
+# २. खात्रीशीर ऑडिओ प्लेअर्स (MP3 Format)
+if trigger_siren:
+    st.error("🚨 सायरन सुरू आहे! (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
+    st.audio("https://freesound.org/data/previews/435/435238_8905256-lq.mp3", format="audio/mp3", autoplay=True)
+    
+    # 🌟 बॅकअप प्लॅन: ऑफलाईन सायरन (कोणत्याही फाईलशिवाय चालणारा सायरन) 🌟
+    backup_siren_html = """
+    <div style="text-align: center; margin-top: 10px;">
+        <button onclick="playEmergencySiren()" style="padding: 10px 20px; background-color: #d32f2f; color: white; border: 2px solid #b71c1c; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+           🔊 आणीबाणी सायरन (क्लिक करा)
+        </button>
+    </div>
+    <script>
+    let audioCtx;
+    let oscillator;
+    let isPlaying = false;
+    function playEmergencySiren() {
+        if(isPlaying) return;
+        isPlaying = true;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        oscillator = audioCtx.createOscillator();
+        let gainNode = audioCtx.createGain();
+        oscillator.type = 'square';
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        
+        let freq = 500;
+        let up = true;
+        setInterval(() => {
+            if(up) freq += 20; else freq -= 20;
+            if(freq > 1000) up = false;
+            if(freq < 500) up = true;
+            if(oscillator) oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        }, 10);
+    }
+    </script>
+    """
+    st.markdown(backup_siren_html, unsafe_allow_html=True)
+
+elif is_any_water_pouring:
+    st.info("🌊 पाण्याचा प्रवाह सुरू आहे... (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
+    st.audio("https://freesound.org/data/previews/205/205966_3662580-lq.mp3", format="audio/mp3", autoplay=True)
+else:
+    st.write("शांतता... सर्व पंप आणि अलार्म बंद आहेत.")
