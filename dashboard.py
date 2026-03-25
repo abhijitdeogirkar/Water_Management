@@ -4,20 +4,19 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS (लाटा, फ्लॅशिंग सायरन आणि ॲनिमेशन)
+# १. प्रगत CSS
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
 @keyframes waveMove { 0% { background-position-x: 0px; } 100% { background-position-x: 40px; } }
 @keyframes sunGlow { 0% { box-shadow: 0 0 5px #fbc02d; } 50% { box-shadow: 0 0 10px #fbc02d; } 100% { box-shadow: 0 0 5px #fbc02d; } }
 @keyframes energyFlow { 0% { background-position: 0px 0; } 100% { background-position: 20px 0; } }
-@keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
 @keyframes sirenFlash { 0% { background-color: #ffebee; border: 3px solid #f44336; } 50% { background-color: #f44336; color: white; box-shadow: 0 0 30px #f44336; } 100% { background-color: #ffebee; border: 3px solid #f44336; } }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# ⚙️ टेस्टिंग सिम्युलेटर (लॉजिक कंट्रोलसाठी)
+# ⚙️ टेस्टिंग सिम्युलेटर
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
@@ -26,15 +25,13 @@ with st.sidebar:
     st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
 
-# २. मुख्य अलार्म लॉजिक (Top Banner Alert)
+# २. मुख्य अलार्म लॉजिक
 if 'alarm_armed' not in st.session_state:
     st.session_state.alarm_armed = False
 
 trigger_siren = st.session_state.alarm_armed and simulate_motion
 
-if trigger_siren:
-    st.markdown("<div style='animation: sirenFlash 0.5s infinite; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px;'><h1 style='margin:0; font-weight:900;'>🚨 सावधान! सुरक्षा भंग (INTRUDER DETECTED) 🚨</h1><h4 style='margin:0;'>घरात संशयास्पद हालचाल आढळली आहे!</h4></div>", unsafe_allow_html=True)
-else:
+if not trigger_siren:
     st.markdown("""
     <div style='text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5;'>
         <h2 style='color: #ffffff; margin: 0; font-weight: 800; letter-spacing: 1px;'>अभिप्राजामेयार्णव</h2>
@@ -49,12 +46,10 @@ def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
     dark_wave_color = "%23004b7c" if tank_type == "overhead" else "%23003366" 
     tank_height = "160px" if tank_type == "underground" else "220px"
     tank_width = "100%" if tank_type == "underground" else "160px"
-
     is_pouring = any(inlet['active'] for inlet in inlets)
     
     if not is_pouring:
-        simple_dark_blue = dark_wave_color.replace("%23", "#")
-        wave_html = f"<div style='position: absolute; top: 0; left: 0; width: 100%; height: 5px; background-color: {simple_dark_blue}; border-top: 2px solid rgba(255,255,255,0.4); z-index: 10;'></div>"
+        wave_html = f"<div style='position: absolute; top: 0; left: 0; width: 100%; height: 5px; background-color: {dark_wave_color.replace('%23', '#')}; border-top: 2px solid rgba(255,255,255,0.4); z-index: 10;'></div>"
     else:
         wave_html = f"<div style='position: absolute; top: -10px; left: 0; width: 100%; height: 15px; background: url(\"data:image/svg+xml;utf8,<svg viewBox=\\\"0 0 40 15\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><path d=\\\"M0 8 Q 10 15, 20 8 T 40 8 L 40 15 L 0 15 Z\\\" fill=\\\"{dark_wave_color}\\\"/></svg>\") repeat-x; background-size: 40px 15px; animation: waveMove 1s linear infinite; z-index: 10;'></div>"
 
@@ -67,7 +62,6 @@ def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
     html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     st.markdown(html, unsafe_allow_html=True)
 
-# ४. ॲमीटर आणि नॉब
 def draw_ammeter(is_on):
     color = "#2ecc71" if is_on else "#e74c3c"
     rotation = "45deg" if is_on else "-45deg"
@@ -78,8 +72,77 @@ def draw_knob(is_on):
     rotation = "0deg" if is_on else "90deg" 
     st.markdown(f"<div style='text-align: center; margin-bottom: 5px;'><div style='width: 40px; height: 40px; border-radius: 50%; background: #2c3e50; border: 3px solid {color}; margin: 0 auto; position: relative; transform: rotate({rotation}); transition: transform 0.4s; box-shadow: 2px 2px 4px rgba(0,0,0,0.4);'><div style='width: 5px; height: 18px; background: {color}; position: absolute; top: 2px; left: 14px; border-radius: 3px;'></div></div></div>", unsafe_allow_html=True)
 
-# डमी डेटा
 tank1_lvl = 45; tank2_lvl = 60; ug_lvl = 75
+
+# ---------------------------------------------------------
+# 🚨 सर्वात महत्त्वाचे: घुुसखोर आल्यावर दिसणारा महा-अलार्म
+# ---------------------------------------------------------
+if trigger_siren:
+    siren_html = """
+    <div style="background-color: #ffebee; border: 4px solid #d32f2f; border-radius: 12px; padding: 20px; text-align: center; animation: sirenFlash 0.5s infinite; margin-bottom: 20px;">
+        <h1 style="color: #d32f2f; margin: 0; font-size: 36px; font-weight: 900;">🚨 सावधान! घुसखोर आढळला! 🚨</h1>
+        <p style="font-size: 20px; font-weight: bold; color: #333;">घरात संशयास्पद हालचाल टिपली गेली आहे.</p>
+        <button onclick="playSiren()" style="background-color: #d32f2f; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0px 5px 15px rgba(211,47,47,0.5); margin: 10px;">
+            🔊 सायरन वाजवा (PLAY SIREN)
+        </button>
+        <button onclick="stopSiren()" style="background-color: #333; color: white; padding: 15px 30px; border: none; border-radius: 8px; font-size: 24px; font-weight: bold; cursor: pointer; margin: 10px;">
+            🔇 सायरन बंद करा
+        </button>
+    </div>
+
+    <script>
+        var audioCtx = null;
+        var osc1 = null;
+        var osc2 = null;
+        var sirenInterval = null;
+
+        function playSiren() {
+            if (audioCtx == null) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (osc1 != null) return; // आधीच चालू असेल तर काही करू नका
+
+            osc1 = audioCtx.createOscillator();
+            osc2 = audioCtx.createOscillator();
+            var gainNode = audioCtx.createGain();
+
+            osc1.type = 'square';
+            osc2.type = 'sawtooth';
+
+            osc1.connect(gainNode);
+            osc2.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            gainNode.gain.value = 0.3; // आवाज पातळी
+
+            osc1.start();
+            osc2.start();
+
+            var freq = 400;
+            var rising = true;
+
+            sirenInterval = setInterval(function() {
+                if (rising) {
+                    freq += 15;
+                    if (freq > 900) rising = false;
+                } else {
+                    freq -= 15;
+                    if (freq < 400) rising = true;
+                }
+                osc1.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc2.frequency.setValueAtTime(freq + 5, audioCtx.currentTime); // डरावना आवाज बनवण्यासाठी
+            }, 15);
+        }
+
+        function stopSiren() {
+            if (sirenInterval) clearInterval(sirenInterval);
+            if (osc1) { osc1.stop(); osc1.disconnect(); osc1 = null; }
+            if (osc2) { osc2.stop(); osc2.disconnect(); osc2 = null; }
+        }
+    </script>
+    """
+    # Components.html वापरून हा कोड सुरक्षितपणे रेंडर केला आहे
+    components.html(siren_html, height=250)
+
 
 col_left, col_right = st.columns([1.5, 1])
 
@@ -94,7 +157,7 @@ with col_right:
         else:
             st.warning("⚠️ सिस्टीम बंद आहे.")
 
-    # --- ☀️ सोलर ऊर्जा (Sofar) कार्ड ---
+    # --- ☀️ सोलर ऊर्जा ---
     solar_glow = "animation: sunGlow 3s infinite;" if sim_solar else "border: 1px solid #ccc;"
     live_power = "3.2 kW" if sim_solar else "0.0 kW"
     line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if sim_solar else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
@@ -109,7 +172,7 @@ with col_right:
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{live_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>14.5 kWh</div></div></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
 
-    # --- कार्ड २: कंट्रोल पॅनल (पंप) ---
+    # --- कार्ड: कंट्रोल पॅनल ---
     with st.container(border=True):
         st.markdown("<div style='background-color: #ffe0b2; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #e65100; font-weight: bold;'>⚡ कंट्रोल पॅनल (पंप)</h5></div>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
@@ -117,7 +180,6 @@ with col_right:
         with c2: bw1_pump = st.toggle("Borewell 1", value=False); draw_ammeter(bw1_pump)
         with c3: bw2_pump = st.toggle("Borewell 2", value=False); draw_ammeter(bw2_pump)
 
-    # --- कार्ड ३: वाल्व्ह (कॉक) ---
     with st.container(border=True):
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक)</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
@@ -125,17 +187,14 @@ with col_right:
         with v2: valve_t2 = st.toggle("V2 (Tank 2)", value=False); draw_knob(valve_t2)
         with v3: valve_ug = st.toggle("V3 (UG Tank)", value=False); draw_knob(valve_ug)
 
-    # --- 🧠 प्रगत स्मार्ट लॉजिक ---
     any_pump_on = ug_pump or bw1_pump or bw2_pump
     any_borewell_on = bw1_pump or bw2_pump
-    
     tank1_pouring = valve_t1 and any_pump_on
     tank2_pouring = valve_t2 and any_pump_on
     ug_pouring_from_bw = valve_ug and any_borewell_on
     ug_pouring_from_tanker = sim_tanker
     garden_watering = ug_pump and not valve_t1 and not valve_t2
 
-    # --- स्थितीदर्शक बोर्ड ---
     with st.container(border=True):
         st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>📋 स्थितीदर्शक</h5></div>", unsafe_allow_html=True)
         status_msgs = []
@@ -165,9 +224,6 @@ with col_left:
     garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #00b4d8 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
     st.markdown(f"<div style='margin-top: 20px; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; padding: 15px; text-align: center; position: relative;'>{garden_active_html}<div style='font-size: 40px;'>🌳🏡🌿</div><h4 style='color: #2e7d32; margin: 5px 0 0 0;'>गार्डन / झाडे</h4><p style='font-size: 12px; color: #555; margin: 0;'>अंडरग्राउंड टाकीतून पाणी</p></div>", unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# --- 📹 सुरक्षा कॅमेरे (CCTV) ---
-# ---------------------------------------------------------
 st.markdown("<br><hr>", unsafe_allow_html=True)
 st.markdown("<h3 style='color: #1e3c72; text-align: center;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h3>", unsafe_allow_html=True)
 
@@ -180,15 +236,7 @@ with cam_col1:
 with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# --- 📢 १००% खात्रीशीर ऑडिओ आणि सायरन (MP3 + Web Audio API) ---
-# ---------------------------------------------------------
-st.markdown("---")
-st.markdown("### 🔊 सिस्टीम ऑडिओ (System Audio)")
-
-is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
-
-# १. मराठी बोलणारा अलर्ट (Text-To-Speech) 
+# --- मराठी बोलणारा अलर्ट ---
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. अलार्म सुरू झाला आहे."
@@ -196,10 +244,6 @@ elif (valve_t1 or valve_t2) and not any_pump_on:
     alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
 elif tank1_pouring and tank2_pouring:
     alert_to_speak = "टाकी एक आणि टाकी दोन मध्ये पाणी भरत आहे."
-elif tank1_pouring:
-    alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
-elif tank2_pouring:
-    alert_to_speak = "टाकी दोन मध्ये पाणी भरत आहे."
 
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
@@ -208,49 +252,3 @@ if alert_to_speak and alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
     components.html(tts_js, height=0, width=0)
-
-# २. खात्रीशीर ऑडिओ प्लेअर्स (MP3 Format)
-if trigger_siren:
-    st.error("🚨 सायरन सुरू आहे! (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
-    st.audio("https://freesound.org/data/previews/435/435238_8905256-lq.mp3", format="audio/mp3", autoplay=True)
-    
-    # 🌟 बॅकअप प्लॅन: ऑफलाईन सायरन (कोणत्याही फाईलशिवाय चालणारा सायरन) 🌟
-    backup_siren_html = """
-    <div style="text-align: center; margin-top: 10px;">
-        <button onclick="playEmergencySiren()" style="padding: 10px 20px; background-color: #d32f2f; color: white; border: 2px solid #b71c1c; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-           🔊 आणीबाणी सायरन (क्लिक करा)
-        </button>
-    </div>
-    <script>
-    let audioCtx;
-    let oscillator;
-    let isPlaying = false;
-    function playEmergencySiren() {
-        if(isPlaying) return;
-        isPlaying = true;
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        oscillator = audioCtx.createOscillator();
-        let gainNode = audioCtx.createGain();
-        oscillator.type = 'square';
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.start();
-        
-        let freq = 500;
-        let up = true;
-        setInterval(() => {
-            if(up) freq += 20; else freq -= 20;
-            if(freq > 1000) up = false;
-            if(freq < 500) up = true;
-            if(oscillator) oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        }, 10);
-    }
-    </script>
-    """
-    st.markdown(backup_siren_html, unsafe_allow_html=True)
-
-elif is_any_water_pouring:
-    st.info("🌊 पाण्याचा प्रवाह सुरू आहे... (खालील प्ले बटण दाबा जर आवाज आपोआप आला नाही तर)")
-    st.audio("https://freesound.org/data/previews/205/205966_3662580-lq.mp3", format="audio/mp3", autoplay=True)
-else:
-    st.write("शांतता... सर्व पंप आणि अलार्म बंद आहेत.")
