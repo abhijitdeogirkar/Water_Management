@@ -17,7 +17,7 @@ css = """
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# ⚙️ टेस्टिंग सिम्युलेटर (लॉजिक कंट्रोलसाठी) - हे सर्वात वर घेतले आहे कारण याचा डेटा अलर्टसाठी लागतो
+# ⚙️ टेस्टिंग सिम्युलेटर (लॉजिक कंट्रोलसाठी)
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
@@ -27,7 +27,6 @@ with st.sidebar:
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
 
 # २. मुख्य अलार्म लॉजिक (Top Banner Alert)
-# जर अलार्म ON असेल आणि हालचाल झाली, तर सायरन वाजेल
 if 'alarm_armed' not in st.session_state:
     st.session_state.alarm_armed = False
 
@@ -85,7 +84,7 @@ tank1_lvl = 45; tank2_lvl = 60; ug_lvl = 75
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
-    # --- 🛡️ नवीन: सुरक्षा प्रणाली (Burglar Alarm) पॅनेल ---
+    # --- 🛡️ सुरक्षा प्रणाली (Burglar Alarm) पॅनेल ---
     with st.container(border=True):
         alarm_bg = "#ffebee" if trigger_siren else ("#e8f5e9" if st.session_state.alarm_armed else "#f5f5f5")
         st.markdown(f"<div style='background-color: {alarm_bg}; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; transition: 0.3s;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
@@ -182,7 +181,7 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# --- 📢 ऑडिओ आणि व्हाईस अलर्ट (Voice & Sound Engine) ---
+# --- 📢 १००% खात्रीशीर ऑडिओ आणि सायरन अलर्ट (Google Sounds) ---
 # ---------------------------------------------------------
 alert_to_speak = ""
 if trigger_siren:
@@ -204,12 +203,14 @@ if alert_to_speak and alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
 
-# पाण्याचा आवाज 
+# 🌟 गुगलच्या सर्व्हरवरून खात्रीशीर सायरन आणि पाण्याचा आवाज 🌟
 is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
-water_sound_js = """<audio id="wSound" autoplay loop><source src="https://cdn.pixabay.com/download/audio/2021/08/09/audio_88447bc23b.mp3" type="audio/mpeg"></audio><script>document.getElementById("wSound").volume = 0.4;</script>""" if is_any_water_pouring else ""
 
-# सायरनचा आवाज (जर अलार्म वाजला तर)
-siren_sound_js = """<audio id="sSnd" autoplay loop><source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_24a20f92ff.mp3" type="audio/mpeg"></audio><script>document.getElementById("sSnd").volume = 1.0;</script>""" if trigger_siren else ""
+# पाण्याचा आवाज (Google Action Sounds)
+water_sound_js = """<audio id="wSound" autoplay loop><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("wSound").volume = 0.4; document.getElementById("wSound").play();</script>""" if is_any_water_pouring else ""
+
+# सायरनचा भयंकर आवाज (Google Action Sounds - Burglar Alarm)
+siren_sound_js = """<audio id="sSnd" autoplay loop><source src="https://actions.google.com/sounds/v1/alarms/burglar_alarm.ogg" type="audio/ogg"></audio><script>document.getElementById("sSnd").volume = 1.0; document.getElementById("sSnd").play();</script>""" if trigger_siren else ""
 
 if tts_js or water_sound_js or siren_sound_js:
     components.html(tts_js + water_sound_js + siren_sound_js, height=0, width=0)
