@@ -4,7 +4,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS (ऑन/ऑफ बटणे मोबाईलवर शेजारी ठेवण्यासाठी खास CSS जोडले आहे)
+# १. प्रगत CSS (मोबाईलवर बटणे शेजारी ठेवण्यासाठी खास कोडिंग)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -19,16 +19,18 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर बटणे शेजारी ठेवण्यासाठी खास CSS (यामुळे जागा वाचेल) 🌟 */
-div.stButton {
-    display: inline-block !important;
-    width: 47% !important;
-    margin: 1% !important;
-}
-div.stButton > button {
-    width: 100% !important;
-    font-weight: 800 !important;
-    border-radius: 6px !important;
+/* 🌟 मोबाईलवर ON/OFF बटणे शेजारी ठेवण्यासाठी खास CSS 🌟 */
+@media (max-width: 768px) {
+    div[data-testid="element-container"]:has(.btn-row-marker) + div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+    div[data-testid="element-container"]:has(.btn-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 50% !important;
+        min-width: 50% !important;
+        flex: 1 1 50% !important;
+        padding: 0 2px !important;
+    }
 }
 </style>
 """
@@ -108,9 +110,13 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 जुनीच साधी बटणे ठेवली आहेत, CSS मुळे ती शेजारी बसतील 🌟
-    col_obj.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True))
-    col_obj.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False))
+    # 🌟 CSS हॅक ट्रिगर करण्यासाठी अदृश्य मार्कर 🌟
+    col_obj.markdown("<div class='btn-row-marker'></div>", unsafe_allow_html=True)
+    
+    # जुनी साधी बटणे
+    bc1, bc2 = col_obj.columns(2)
+    bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
+    bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
 # मुख्य डॅशबोर्ड लेआउट (Columns)
 col_left, col_right = st.columns([1.5, 1])
@@ -169,7 +175,7 @@ with col_right:
     ug_pouring_from_tanker = sim_tanker
     garden_watering = ug_pump and not valve_t1 and not valve_t2
 
-    # 📋 स्थितीदर्शक बोर्ड अपडेट
+    # 📋 स्थितीदर्शक बोर्ड अपडेट करणे
     with status_board.container(border=True):
         st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>📋 स्थितीदर्शक</h5></div>", unsafe_allow_html=True)
         status_msgs = []
@@ -241,7 +247,7 @@ else:
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
-# 🗣️ सर्व मराठी व्हाईस अलर्ट्स (Text-to-Speech)
+# 🗣️ 🌟 दुरुस्त केलेले मराठी व्हाईस अलर्ट्स लॉजिक 🌟
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
@@ -261,7 +267,10 @@ elif garden_watering:
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
 
-if alert_to_speak and alert_to_speak != st.session_state.last_speech:
+# जर काहीच अलर्ट नसेल तर सिस्टीम 'रिसेट' होते (म्हणजे पुढच्या वेळी आवाज हमखास येईल)
+if alert_to_speak == "":
+    st.session_state.last_speech = ""
+elif alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
     components.html(tts_js, height=0, width=0)
