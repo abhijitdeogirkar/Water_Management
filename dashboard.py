@@ -22,10 +22,10 @@ css = """
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# 🌟 'Top Banner'
+# 🌟 'Top Banner' आणि 'स्थितीदर्शक' साठी जागा
 top_banner = st.empty()
 
-# ⚙️ टेस्टिंग सिम्युलेटर (फक्त एवढेच साईडबार मध्ये राहील)
+# ⚙️ टेस्टिंग सिम्युलेटर (लपलेले साईडबार)
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
@@ -45,8 +45,8 @@ if 'alarm_armed' not in st.session_state:
 def set_pump_state(key, state):
     st.session_state[key] = state
 
-# ३. टाक्यांचे डिझाईन
-def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
+# ३. टाक्यांचे डिझाईन (मोबाईल-फ्रेंडली बनवण्यासाठी हे आता HTML String देते)
+def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
     dark_wave_color = "%23004b7c" if tank_type == "overhead" else "%23003366" 
@@ -62,8 +62,8 @@ def draw_tank(tank_name, level_cm, tank_type="overhead", inlets=[]):
         active_pour = f"<div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.3s infinite linear; z-index: 1;'></div>" if inlet['active'] else ""
         pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
-    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
-    st.markdown(html, unsafe_allow_html=True)
+    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
+    return html
 
 # ४. वाल्व्ह आणि स्टार्टर्सचे डिझाईन
 def draw_knob(is_on):
@@ -77,7 +77,6 @@ def render_compact_starter(col_obj, pump_name, state_key):
     on_glow = "background: radial-gradient(circle, #00ff00, #004d00); box-shadow: 0 0 10px #00ff00; color: white; border: 1px solid #00ff00;" if is_on else "background: #111; color: #555; border: 1px solid #222;"
     off_glow = "background: radial-gradient(circle, #ff0000, #4d0000); box-shadow: 0 0 10px #ff0000; color: white; border: 1px solid #ff0000;" if not is_on else "background: #111; color: #555; border: 1px solid #222;"
 
-    # HTML without indentation to avoid Streamlit code block issue
     html = f"""<div style="background-color: #1c1c1c; padding: 10px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 5px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
 <div style="color: #ddd; font-weight: bold; font-size: 11px; margin-bottom: 8px; text-transform: uppercase;">{pump_name}</div>
 <div style="background-color: #f9f9f9; border-radius: 4px; padding: 5px; margin-bottom: 10px; border: 1px solid #aaa; position: relative; height: 50px;">
@@ -97,7 +96,6 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # बटणे
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
@@ -109,7 +107,7 @@ with col_right:
     # 🌟 १. स्थितीदर्शक बोर्ड (सर्वात वरती)
     status_board = st.empty()
 
-    # 🛡️ २. सुरक्षा प्रणाली (Burglar Alarm)
+    # 🛡️ २. सुरक्षा प्रणाली
     with st.container(border=True):
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed, help="घराबाहेर जाताना हे चालू करा")
@@ -132,8 +130,6 @@ with col_right:
     # ⚡ ४. कंट्रोल पॅनल (यात ३ स्टार्टर्स एका ओळीत)
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल पॅनल</h5></div>", unsafe_allow_html=True)
-        
-        # एकाच कार्डमध्ये ३ कॉलम्स
         sc1, sc2, sc3 = st.columns(3)
         render_compact_starter(sc1, "UG PUMP", "ug_pump")
         render_compact_starter(sc2, "BW-1", "bw1_pump")
@@ -181,12 +177,20 @@ with col_right:
         st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 with col_left:
-    t1_col, t2_col = st.columns(2)
-    with t1_col: draw_tank("Tank 1", 45, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
-    with t2_col: draw_tank("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    draw_tank("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
+    # मोबाईल फ्रेंडली टाक्यांचे डिझाईन (HTML Flexbox वापरून)
+    html_t1 = get_tank_html("Tank 1", 45, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
+    html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
+    html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
+
+    st.markdown(f"""
+    <div style="display: flex; justify-content: space-around; flex-wrap: nowrap; width: 100%; gap: 10px;">
+        <div style="flex: 1; display: flex; justify-content: center;">{html_t1}</div>
+        <div style="flex: 1; display: flex; justify-content: center;">{html_t2}</div>
+    </div>
+    <div style="width: 100%; margin-top: 15px;">
+        {html_ug}
+    </div>
+    """, unsafe_allow_html=True)
 
     garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #00b4d8 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
     st.markdown(f"<div style='margin-top: 20px; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; padding: 15px; text-align: center; position: relative;'>{garden_active_html}<div style='font-size: 40px;'>🌳🏡🌿</div><h4 style='color: #2e7d32; margin: 5px 0 0 0;'>गार्डन / झाडे</h4><p style='font-size: 12px; color: #555; margin: 0;'>अंडरग्राउंड टाकीतून पाणी</p></div>", unsafe_allow_html=True)
@@ -204,7 +208,7 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 📢 परत आलेली 'बोलणारी' ऑडिओ आणि सायरन सिस्टीम
+# 📢 बोलणारी 'मराठी व्हाईस' आणि सायरन सिस्टीम 
 # ---------------------------------------------------------
 if trigger_siren:
     top_banner.markdown("""
@@ -221,10 +225,6 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-# पाण्याचा आवाज (Background Water Sound)
-if is_any_water_pouring and not trigger_siren:
-    st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
-
 # 🗣️ सर्व मराठी व्हाईस अलर्ट्स (Text-to-Speech)
 alert_to_speak = ""
 if trigger_siren:
@@ -237,6 +237,10 @@ elif tank1_pouring:
     alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
 elif tank2_pouring:
     alert_to_speak = "टाकी दोन मध्ये पाणी भरत आहे."
+elif ug_pouring_from_bw or ug_pouring_from_tanker:
+    alert_to_speak = "अंडरग्राउंड टाकीत पाणी भरत आहे."
+elif garden_watering:
+    alert_to_speak = "गार्डन मध्ये पाणी दिले जात आहे."
 
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
