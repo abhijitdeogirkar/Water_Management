@@ -4,7 +4,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS
+# १. प्रगत CSS (ऑन/ऑफ बटणे मोबाईलवर शेजारी ठेवण्यासाठी खास CSS जोडले आहे)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -18,6 +18,17 @@ css = """
 }
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
+
+/* 🌟 मोबाईलवर बटणे शेजारी ठेवण्यासाठी खास CSS 🌟 */
+div.stButton {
+    display: inline-block !important;
+    width: 48% !important;
+    margin: 0 1% !important;
+}
+div.stButton > button {
+    width: 100% !important;
+    font-weight: bold !important;
+}
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -45,7 +56,7 @@ if 'alarm_armed' not in st.session_state:
 def set_pump_state(key, state):
     st.session_state[key] = state
 
-# ३. टाक्यांचे डिझाईन (मोबाईल-फ्रेंडली बनवण्यासाठी हे आता HTML String देते)
+# ३. टाक्यांचे डिझाईन 
 def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
@@ -96,9 +107,9 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    bc1, bc2 = col_obj.columns(2)
-    bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
-    bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
+    # 🌟 येथे बदल केला आहे: आता columns न वापरता थेट बटणे दिली आहेत, CSS मुळे ती शेजारी बसतील!
+    col_obj.button("🟢 ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True))
+    col_obj.button("🔴 OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False))
 
 # मुख्य डॅशबोर्ड लेआउट (Columns)
 col_left, col_right = st.columns([1.5, 1])
@@ -107,7 +118,7 @@ with col_right:
     # 🌟 १. स्थितीदर्शक बोर्ड (सर्वात वरती)
     status_board = st.empty()
 
-    # 🛡️ २. सुरक्षा प्रणाली
+    # 🛡️ २. सुरक्षा प्रणाली (Burglar Alarm)
     with st.container(border=True):
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed, help="घराबाहेर जाताना हे चालू करा")
@@ -157,7 +168,7 @@ with col_right:
     ug_pouring_from_tanker = sim_tanker
     garden_watering = ug_pump and not valve_t1 and not valve_t2
 
-    # 📋 स्थितीदर्शक बोर्ड अपडेट करणे (सर्वात वरच्या जागेत भरणे)
+    # 📋 स्थितीदर्शक बोर्ड अपडेट करणे
     with status_board.container(border=True):
         st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>📋 स्थितीदर्शक</h5></div>", unsafe_allow_html=True)
         status_msgs = []
@@ -177,7 +188,7 @@ with col_right:
         st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 with col_left:
-    # मोबाईल फ्रेंडली टाक्यांचे डिझाईन (HTML Flexbox वापरून)
+    # 🌟 मोबाईल फ्रेंडली टाक्यांचे डिझाईन (HTML Flexbox)
     html_t1 = get_tank_html("Tank 1", 45, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
@@ -224,6 +235,10 @@ else:
         <h4 style='color: #81d4fa; margin: 3px 0 0 0; font-weight: 500;'>पाणी, ऊर्जा व सुरक्षा व्यवस्थापन प्रणाली</h4>
     </div>
     """, unsafe_allow_html=True)
+
+# पाण्याचा आवाज (Background Water Sound)
+if is_any_water_pouring and not trigger_siren:
+    st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
 # 🗣️ सर्व मराठी व्हाईस अलर्ट्स (Text-to-Speech)
 alert_to_speak = ""
