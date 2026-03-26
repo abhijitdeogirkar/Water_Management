@@ -5,7 +5,7 @@ import time
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS (मोबाईलवर बटणांची रुंदी अर्धी करण्यासाठी खास CSS)
+# १. प्रगत CSS (डेस्कटॉप परफेक्ट ठेवण्यासाठी आणि मोबाईलवर बटणे शेजारी लॉक करण्यासाठी)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -20,30 +20,26 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर ON/OFF बटणांची रुंदी 'अर्धी' आणि मध्यभागी ठेवण्यासाठी 🌟 */
-@media (max-width: 768px) {
-    [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        justify-content: center !important; /* बटणे मध्यभागी आणली */
-        gap: 15px !important;
-    }
-    [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-        flex: 0 0 auto !important; /* कॉलमची रुंदी वाढण्यापासून रोखली */
-        width: auto !important;
-        min-width: 0 !important;
-    }
-    .stButton button {
-        width: 100px !important; /* रुंदी थेट निम्मी (लहान) केली */
-        margin: 0 auto !important;
-    }
-}
-
-/* डेस्कटॉप वरील सामान्य डिझाईन */
+/* डेस्कटॉप आणि सर्व ठिकाणी बटणांची मूळ डिझाईन (Wrapping थांबवण्यासाठी) */
 .stButton button {
     font-weight: 900 !important;
     border-radius: 6px !important;
     border: 2px solid #555 !important;
+}
+
+/* 🌟 मोबाईलवर (Mobile View) ON/OFF बटणे हमखास शेजारी ठेवण्यासाठी 'कॉलम लॉक' 🌟 */
+@media (max-width: 768px) {
+    /* हा कोड फक्त स्टार्टर पॅनल्सच्या आतील कॉलम्सना शेजारी-शेजारी ठेवेल */
+    div.element-container:has(.btn-row-marker) + div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 10px !important;
+    }
+    div.element-container:has(.btn-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 50% !important;
+        min-width: 0 !important;
+        flex: 1 1 50% !important;
+    }
 }
 </style>
 """
@@ -104,7 +100,8 @@ def render_compact_starter(col_obj, pump_name, state_key):
     on_glow = "background: radial-gradient(circle, #00ff00, #004d00); box-shadow: 0 0 10px #00ff00; color: white; border: 1px solid #00ff00;" if is_on else "background: #111; color: #555; border: 1px solid #222;"
     off_glow = "background: radial-gradient(circle, #ff0000, #4d0000); box-shadow: 0 0 10px #ff0000; color: white; border: 1px solid #ff0000;" if not is_on else "background: #111; color: #555; border: 1px solid #222;"
 
-    html = f"""<div style="background-color: #1c1c1c; padding: 10px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 8px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
+    # 🌟 येथे 'btn-row-marker' हा क्लास वापरला आहे जो CSS ला ओळखायला मदत करेल
+    html = f"""<div class='btn-row-marker' style="background-color: #1c1c1c; padding: 10px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 8px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
 <div style="color: #ddd; font-weight: bold; font-size: 11px; margin-bottom: 8px; text-transform: uppercase;">{pump_name}</div>
 <div style="background-color: #f9f9f9; border-radius: 4px; padding: 5px; margin-bottom: 10px; border: 1px solid #aaa; position: relative; height: 50px;">
 <svg width="100%" height="100%" viewBox="0 0 100 65">
@@ -123,6 +120,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
+    # 🌟 कॉलम्स परत आणले! डेस्कटॉपवर आणि CSS मुळे मोबाईलवरही शेजारी राहतील
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
