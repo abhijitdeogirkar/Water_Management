@@ -19,15 +19,16 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर बटणे शेजारी ठेवण्यासाठी खास CSS 🌟 */
+/* 🌟 मोबाईलवर बटणे शेजारी ठेवण्यासाठी खास CSS (यामुळे जागा वाचेल) 🌟 */
 div.stButton {
     display: inline-block !important;
-    width: 48% !important;
-    margin: 0 1% !important;
+    width: 47% !important;
+    margin: 1% !important;
 }
 div.stButton > button {
     width: 100% !important;
-    font-weight: bold !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
 }
 </style>
 """
@@ -107,9 +108,9 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 येथे बदल केला आहे: आता columns न वापरता थेट बटणे दिली आहेत, CSS मुळे ती शेजारी बसतील!
-    col_obj.button("🟢 ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True))
-    col_obj.button("🔴 OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False))
+    # 🌟 जुनीच साधी बटणे ठेवली आहेत, CSS मुळे ती शेजारी बसतील 🌟
+    col_obj.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True))
+    col_obj.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False))
 
 # मुख्य डॅशबोर्ड लेआउट (Columns)
 col_left, col_right = st.columns([1.5, 1])
@@ -118,7 +119,7 @@ with col_right:
     # 🌟 १. स्थितीदर्शक बोर्ड (सर्वात वरती)
     status_board = st.empty()
 
-    # 🛡️ २. सुरक्षा प्रणाली (Burglar Alarm)
+    # 🛡️ २. सुरक्षा प्रणाली
     with st.container(border=True):
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed, help="घराबाहेर जाताना हे चालू करा")
@@ -168,7 +169,7 @@ with col_right:
     ug_pouring_from_tanker = sim_tanker
     garden_watering = ug_pump and not valve_t1 and not valve_t2
 
-    # 📋 स्थितीदर्शक बोर्ड अपडेट करणे
+    # 📋 स्थितीदर्शक बोर्ड अपडेट
     with status_board.container(border=True):
         st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>📋 स्थितीदर्शक</h5></div>", unsafe_allow_html=True)
         status_msgs = []
