@@ -20,22 +20,23 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर ON/OFF बटणे हमखास शेजारी ठेवण्यासाठी (Nested Column Lock) 🌟 */
+/* 🌟 मोबाईलवर ON/OFF बटणे हमखास शेजारी ठेवण्यासाठी (१००% सपोर्टेड CSS) 🌟 */
 @media (max-width: 768px) {
-    [data-testid="column"] [data-testid="column"] [data-testid="stHorizontalBlock"] {
+    [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
+        gap: 5px !important;
     }
-    [data-testid="column"] [data-testid="column"] [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+    [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] > [data-testid="column"] {
         width: 50% !important;
         min-width: 50% !important;
         flex: 1 1 50% !important;
-        padding: 0 5px !important;
     }
 }
 .stButton button {
     font-weight: 900 !important;
     border-radius: 6px !important;
+    border: 2px solid #555 !important;
 }
 </style>
 """
@@ -115,7 +116,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 आता डेस्कटॉपवरही शेजारी दिसतील आणि CSS मुळे मोबाईलवरही शेजारीच राहतील!
+    # 🌟 डेस्कटॉपसाठी कॉलम्स परत आणले, CSS मुळे ते मोबाईलवरही शेजारीच राहतील 🌟
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
@@ -189,7 +190,7 @@ with col_right:
         else:
             if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
             if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
-            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
+            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू মাঠে.")
             if sim_tanker: status_msgs.append("🚚 टँकरद्वारे पाणी येत आहे.")
         if tank1_pouring: status_msgs.append("🔹 'Tank 1' मध्ये पाणी भरत आहे.")
         if tank2_pouring: status_msgs.append("🔹 'Tank 2' मध्ये पाणी भरत आहे.")
@@ -252,7 +253,7 @@ else:
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
-# 🗣️ 🌟 १००% अचूक आणि न थांबणारे ऑडिओ लॉजिक (Timestamp Hack) 🌟
+# 🗣️ न थांबणारे ऑडिओ लॉजिक (Timestamp Hack)
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
@@ -276,6 +277,5 @@ if alert_to_speak == "":
     st.session_state.last_speech = ""
 elif alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
-    # टाइमस्टॅम्पमुळे ब्राउझरला वाटते हा नवा कोड आहे, त्यामुळे तो १००% बोलतोच!
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg); console.log('{time.time()}');</script>"
     components.html(tts_js, height=0, width=0)
