@@ -5,7 +5,7 @@ import time
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS (मोबाईलवर बटणे स्क्रीनच्या बाहेर जाऊ नयेत यासाठी परफेक्ट सेटिंग)
+# १. प्रगत CSS (मोबाईलवर बटणांची रुंदी अर्धी करण्यासाठी खास CSS)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -20,26 +20,30 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर ON/OFF बटणे स्क्रीनमध्ये फिट बसवण्यासाठी 🌟 */
+/* 🌟 मोबाईलवर ON/OFF बटणांची रुंदी 'अर्धी' आणि मध्यभागी ठेवण्यासाठी 🌟 */
 @media (max-width: 768px) {
     [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 4px !important; /* दोन बटणांमधील जागा कमी केली */
+        justify-content: center !important; /* बटणे मध्यभागी आणली */
+        gap: 15px !important;
     }
     [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-        width: 48% !important;
-        min-width: 0px !important; /* हे सगळ्यात महत्त्वाचे आहे: यामुळे बटण बाहेर जाणार नाही */
-        flex: 1 1 0px !important;
+        flex: 0 0 auto !important; /* कॉलमची रुंदी वाढण्यापासून रोखली */
+        width: auto !important;
+        min-width: 0 !important;
+    }
+    .stButton button {
+        width: 100px !important; /* रुंदी थेट निम्मी (लहान) केली */
+        margin: 0 auto !important;
     }
 }
+
+/* डेस्कटॉप वरील सामान्य डिझाईन */
 .stButton button {
     font-weight: 900 !important;
     border-radius: 6px !important;
     border: 2px solid #555 !important;
-    width: 100% !important;
-    padding-left: 0px !important;
-    padding-right: 0px !important;
 }
 </style>
 """
@@ -119,7 +123,6 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 कॉलम्स वापरले आहेत, जेणेकरून ते डेस्कटॉपवर शेजारी दिसतील आणि CSS मुळे मोबाईलवरही!
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
