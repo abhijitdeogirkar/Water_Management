@@ -4,7 +4,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS (मोबाईलवर बटणे शेजारी ठेवण्यासाठी खास कोडिंग)
+# १. प्रगत CSS (मोबाईलवर बटणे शेजारी ठेवण्यासाठी आणि ॲनिमेशनसाठी)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -19,27 +19,26 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर ON/OFF बटणे शेजारीच ठेवण्यासाठी (Column Lock Hack) 🌟 */
-@media (max-width: 768px) {
-    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:nth-child(2):last-child {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 10px !important;
-    }
-    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:nth-child(2):last-child > div[data-testid="column"] {
-        width: 50% !important;
-        min-width: 50% !important;
-        flex: 1 1 50% !important;
-    }
+/* 🌟 मोबाईलवर ON/OFF बटणे शेजारीच ठेवण्यासाठी हुकमी CSS 🌟 */
+div[data-testid="element-container"]:has(.stButton) {
+    display: inline-block !important;
+    width: 48% !important;
+    margin: 1% 0.5% !important;
+}
+div.stButton button {
+    width: 100% !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+    border: 2px solid #555 !important;
 }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# 🌟 'Top Banner' आणि 'स्थितीदर्शक' साठी जागा
+# 🌟 'Top Banner' साठी जागा
 top_banner = st.empty()
 
-# ⚙️ टेस्टिंग सिम्युलेटर (लपलेले साईडबार)
+# ⚙️ टेस्टिंग सिम्युलेटर (साईडबार)
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
@@ -91,7 +90,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
     on_glow = "background: radial-gradient(circle, #00ff00, #004d00); box-shadow: 0 0 10px #00ff00; color: white; border: 1px solid #00ff00;" if is_on else "background: #111; color: #555; border: 1px solid #222;"
     off_glow = "background: radial-gradient(circle, #ff0000, #4d0000); box-shadow: 0 0 10px #ff0000; color: white; border: 1px solid #ff0000;" if not is_on else "background: #111; color: #555; border: 1px solid #222;"
 
-    html = f"""<div style="background-color: #1c1c1c; padding: 10px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 5px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
+    html = f"""<div style="background-color: #1c1c1c; padding: 10px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 8px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
 <div style="color: #ddd; font-weight: bold; font-size: 11px; margin-bottom: 8px; text-transform: uppercase;">{pump_name}</div>
 <div style="background-color: #f9f9f9; border-radius: 4px; padding: 5px; margin-bottom: 10px; border: 1px solid #aaa; position: relative; height: 50px;">
 <svg width="100%" height="100%" viewBox="0 0 100 65">
@@ -110,26 +109,23 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 येथे आपण एक 'Container' वापरला आहे ज्याला CSS ने मोबाईलवर शेजारी ठेवले जाईल 🌟
-    with col_obj.container():
-        st.markdown("<div style='display:none;'></div>", unsafe_allow_html=True)
-        bc1, bc2 = st.columns(2)
-        bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
-        bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
+    # 🌟 येथे कॉलम्स न वापरता थेट बटणे दिली आहेत, ज्यामुळे ती मोबाईलवर शेजारीच राहतील! 🌟
+    col_obj.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True))
+    col_obj.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False))
 
-# मुख्य डॅशबोर्ड लेआउट (Columns)
+# ५. मुख्य डॅशबोर्ड लेआउट
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
-    # 🌟 १. स्थितीदर्शक बोर्ड (सर्वात वरती)
+    # 🌟 स्थितीदर्शक बोर्डाची जागा
     status_board = st.empty()
 
-    # 🛡️ २. सुरक्षा प्रणाली
+    # 🛡️ सुरक्षा प्रणाली
     with st.container(border=True):
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
-        st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed, help="घराबाहेर जाताना हे चालू करा")
+        st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ ३. सोलर ऊर्जा
+    # ☀️ सोलर ऊर्जा
     solar_glow = "animation: sunGlow 3s infinite;" if sim_solar else "border: 1px solid #ccc;"
     live_power = "3.2 kW" if sim_solar else "0.0 kW"
     line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if sim_solar else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
@@ -144,26 +140,25 @@ with col_right:
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{live_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>14.5 kWh</div></div></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
 
-    # ⚡ ४. कंट्रोल पॅनल (यात ३ स्टार्टर्स एका ओळीत)
+    # ⚡ कंट्रोल पॅनल
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल पॅनल</h5></div>", unsafe_allow_html=True)
         sc1, sc2, sc3 = st.columns(3)
         render_compact_starter(sc1, "UG PUMP", "ug_pump")
         render_compact_starter(sc2, "BW-1", "bw1_pump")
         render_compact_starter(sc3, "BW-2", "bw2_pump")
-        # हा छुपा घटक CSS हॅक सुरक्षित ठेवतो
-        st.markdown("<div style='display:none;'></div>", unsafe_allow_html=True)
 
-    # 🎛️ ५. वाल्व्ह (कॉक)
+    # 🎛️ वाल्व्ह (कॉक)
     with st.container(border=True):
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक)</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
         with v1: valve_t1 = st.toggle("V1 (Tank 1)", value=False); draw_knob(valve_t1)
         with v2: valve_t2 = st.toggle("V2 (Tank 2)", value=False); draw_knob(valve_t2)
         with v3: valve_ug = st.toggle("V3 (UG Tank)", value=False); draw_knob(valve_ug)
-        st.markdown("<div style='display:none;'></div>", unsafe_allow_html=True)
 
-    # --- लॉजिक अपडेट ---
+    # ---------------------------------------------------------
+    # 🧠 ६. सर्व लॉजिक येथे तपासले जाते (Error Fix)
+    # ---------------------------------------------------------
     trigger_siren = st.session_state.alarm_armed and simulate_motion
     ug_pump = st.session_state['ug_pump']
     bw1_pump = st.session_state['bw1_pump']
@@ -177,7 +172,10 @@ with col_right:
     ug_pouring_from_tanker = sim_tanker
     garden_watering = ug_pump and not valve_t1 and not valve_t2
 
-    # 📋 स्थितीदर्शक बोर्ड अपडेट करणे
+    # हा वेरिएबल आता आधीच सेट झाला आहे, त्यामुळे NameError येणार नाही!
+    is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
+
+    # 📋 स्थितीदर्शक बोर्ड अपडेट
     with status_board.container(border=True):
         st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>📋 स्थितीदर्शक</h5></div>", unsafe_allow_html=True)
         status_msgs = []
@@ -197,7 +195,7 @@ with col_right:
         st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 with col_left:
-    # 🌟 मोबाईल फ्रेंडली टाक्यांचे डिझाईन (HTML Flexbox)
+    # 🌟 मोबाईल फ्रेंडली टाक्यांचे डिझाईन
     html_t1 = get_tank_html("Tank 1", 45, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
@@ -228,7 +226,7 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 📢 परत आलेली 'बोलणारी' ऑडिओ आणि सायरन सिस्टीम
+# 📢 ७. बोलणारी 'मराठी व्हाईस' आणि सायरन सिस्टीम 
 # ---------------------------------------------------------
 if trigger_siren:
     top_banner.markdown("""
@@ -245,11 +243,11 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-# पाण्याचा आवाज (Background Water Sound)
+# पाण्याचा आवाज
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
-# 🗣️ जुना आणि परफेक्ट चालणारा मराठी व्हाईस अलर्ट (Text-to-Speech)
+# 🗣️ दुरुस्त केलेले मराठी व्हाईस अलर्ट्स लॉजिक (Auto-Reset Feature)
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
@@ -269,7 +267,10 @@ elif garden_watering:
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
 
-if alert_to_speak and alert_to_speak != st.session_state.last_speech:
+# जेव्हा कोणताच अलर्ट नसतो, तेव्हा सिस्टीम जुना आवाज 'विसरून जाते' म्हणजे पुढच्या वेळी ती नक्की बोलेल!
+if alert_to_speak == "":
+    st.session_state.last_speech = ""
+elif alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
     components.html(tts_js, height=0, width=0)
