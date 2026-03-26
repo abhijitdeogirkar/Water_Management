@@ -5,7 +5,7 @@ import time
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS (मोबाईलवर बटणे शेजारी ठेवण्यासाठी 'कॉलम लॉक' हॅक)
+# १. प्रगत CSS (मोबाईलवर बटणे स्क्रीनच्या बाहेर जाऊ नयेत यासाठी परफेक्ट सेटिंग)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -20,23 +20,26 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर ON/OFF बटणे हमखास शेजारी ठेवण्यासाठी (१००% सपोर्टेड CSS) 🌟 */
+/* 🌟 मोबाईलवर ON/OFF बटणे स्क्रीनमध्ये फिट बसवण्यासाठी 🌟 */
 @media (max-width: 768px) {
     [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 5px !important;
+        gap: 4px !important; /* दोन बटणांमधील जागा कमी केली */
     }
     [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-        width: 50% !important;
-        min-width: 50% !important;
-        flex: 1 1 50% !important;
+        width: 48% !important;
+        min-width: 0px !important; /* हे सगळ्यात महत्त्वाचे आहे: यामुळे बटण बाहेर जाणार नाही */
+        flex: 1 1 0px !important;
     }
 }
 .stButton button {
     font-weight: 900 !important;
     border-radius: 6px !important;
     border: 2px solid #555 !important;
+    width: 100% !important;
+    padding-left: 0px !important;
+    padding-right: 0px !important;
 }
 </style>
 """
@@ -116,7 +119,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 डेस्कटॉपसाठी कॉलम्स परत आणले, CSS मुळे ते मोबाईलवरही शेजारीच राहतील 🌟
+    # 🌟 कॉलम्स वापरले आहेत, जेणेकरून ते डेस्कटॉपवर शेजारी दिसतील आणि CSS मुळे मोबाईलवरही!
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
@@ -190,7 +193,7 @@ with col_right:
         else:
             if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
             if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
-            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू মাঠে.")
+            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
             if sim_tanker: status_msgs.append("🚚 टँकरद्वारे पाणी येत आहे.")
         if tank1_pouring: status_msgs.append("🔹 'Tank 1' मध्ये पाणी भरत आहे.")
         if tank2_pouring: status_msgs.append("🔹 'Tank 2' मध्ये पाणी भरत आहे.")
