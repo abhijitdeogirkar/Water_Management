@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
 import streamlit.components.v1 as components
+import time
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. प्रगत CSS (मोबाईलवर बटणे शेजारी ठेवण्यासाठी आणि ॲनिमेशनसाठी)
+# १. प्रगत CSS (मोबाईलवर बटणे शेजारी ठेवण्यासाठी 'कॉलम लॉक' हॅक)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -19,26 +20,31 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर ON/OFF बटणे शेजारीच ठेवण्यासाठी हुकमी CSS 🌟 */
-div[data-testid="element-container"]:has(.stButton) {
-    display: inline-block !important;
-    width: 48% !important;
-    margin: 1% 0.5% !important;
+/* 🌟 मोबाईलवर ON/OFF बटणे हमखास शेजारी ठेवण्यासाठी (Nested Column Lock) 🌟 */
+@media (max-width: 768px) {
+    [data-testid="column"] [data-testid="column"] [data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+    [data-testid="column"] [data-testid="column"] [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+        width: 50% !important;
+        min-width: 50% !important;
+        flex: 1 1 50% !important;
+        padding: 0 5px !important;
+    }
 }
-div.stButton button {
-    width: 100% !important;
-    font-weight: 800 !important;
+.stButton button {
+    font-weight: 900 !important;
     border-radius: 6px !important;
-    border: 2px solid #555 !important;
 }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# 🌟 'Top Banner' साठी जागा
+# 🌟 'Top Banner' आणि 'स्थितीदर्शक' साठी जागा
 top_banner = st.empty()
 
-# ⚙️ टेस्टिंग सिम्युलेटर (साईडबार)
+# ⚙️ टेस्टिंग सिम्युलेटर (लपलेले साईडबार)
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
@@ -109,15 +115,16 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 येथे कॉलम्स न वापरता थेट बटणे दिली आहेत, ज्यामुळे ती मोबाईलवर शेजारीच राहतील! 🌟
-    col_obj.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True))
-    col_obj.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False))
+    # 🌟 आता डेस्कटॉपवरही शेजारी दिसतील आणि CSS मुळे मोबाईलवरही शेजारीच राहतील!
+    bc1, bc2 = col_obj.columns(2)
+    bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
+    bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
 # ५. मुख्य डॅशबोर्ड लेआउट
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
-    # 🌟 स्थितीदर्शक बोर्डाची जागा
+    # 🌟 स्थितीदर्शक बोर्ड
     status_board = st.empty()
 
     # 🛡️ सुरक्षा प्रणाली
@@ -157,7 +164,7 @@ with col_right:
         with v3: valve_ug = st.toggle("V3 (UG Tank)", value=False); draw_knob(valve_ug)
 
     # ---------------------------------------------------------
-    # 🧠 ६. सर्व लॉजिक येथे तपासले जाते (Error Fix)
+    # 🧠 लॉजिक
     # ---------------------------------------------------------
     trigger_siren = st.session_state.alarm_armed and simulate_motion
     ug_pump = st.session_state['ug_pump']
@@ -171,8 +178,6 @@ with col_right:
     ug_pouring_from_bw = valve_ug and any_borewell_on
     ug_pouring_from_tanker = sim_tanker
     garden_watering = ug_pump and not valve_t1 and not valve_t2
-
-    # हा वेरिएबल आता आधीच सेट झाला आहे, त्यामुळे NameError येणार नाही!
     is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
 
     # 📋 स्थितीदर्शक बोर्ड अपडेट
@@ -195,7 +200,7 @@ with col_right:
         st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 with col_left:
-    # 🌟 मोबाईल फ्रेंडली टाक्यांचे डिझाईन
+    # 🌟 टाक्यांचे डिझाईन
     html_t1 = get_tank_html("Tank 1", 45, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
@@ -247,7 +252,7 @@ else:
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
-# 🗣️ दुरुस्त केलेले मराठी व्हाईस अलर्ट्स लॉजिक (Auto-Reset Feature)
+# 🗣️ 🌟 १००% अचूक आणि न थांबणारे ऑडिओ लॉजिक (Timestamp Hack) 🌟
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
@@ -267,10 +272,10 @@ elif garden_watering:
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
 
-# जेव्हा कोणताच अलर्ट नसतो, तेव्हा सिस्टीम जुना आवाज 'विसरून जाते' म्हणजे पुढच्या वेळी ती नक्की बोलेल!
 if alert_to_speak == "":
     st.session_state.last_speech = ""
 elif alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
-    tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
+    # टाइमस्टॅम्पमुळे ब्राउझरला वाटते हा नवा कोड आहे, त्यामुळे तो १००% बोलतोच!
+    tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg); console.log('{time.time()}');</script>"
     components.html(tts_js, height=0, width=0)
