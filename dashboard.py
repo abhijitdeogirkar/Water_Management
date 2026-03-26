@@ -34,7 +34,7 @@ with st.sidebar:
     st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
 
-# २. पंपांच्या 'स्टेट्स' (Session State Initialization)
+# २. पंपांच्या 'स्टेट्स' 
 for key in ['ug_pump', 'bw1_pump', 'bw2_pump']:
     if key not in st.session_state:
         st.session_state[key] = False
@@ -71,46 +71,38 @@ def draw_knob(is_on):
     rotation = "0deg" if is_on else "90deg" 
     st.markdown(f"<div style='text-align: center; margin-bottom: 5px;'><div style='width: 40px; height: 40px; border-radius: 50%; background: #2c3e50; border: 3px solid {color}; margin: 0 auto; position: relative; transform: rotate({rotation}); transition: transform 0.4s; box-shadow: 2px 2px 4px rgba(0,0,0,0.4);'><div style='width: 5px; height: 18px; background: {color}; position: absolute; top: 2px; left: 14px; border-radius: 3px;'></div></div></div>", unsafe_allow_html=True)
 
-# ⚡ ६. नवीन: स्टार्टर पॅनेल डिझाईन (फोटोप्रमाणे)
+# ⚡ ६. दुरुस्त केलेले स्टार्टर पॅनेल
 def set_pump_state(key, state):
     st.session_state[key] = state
 
 def render_starter_panel(col_obj, pump_name, state_key):
     is_on = st.session_state[state_key]
-    
-    # ॲमीटर सुई रोटेशन: -45 म्हणजे 0A (बंद), -15 म्हणजे 10-12A (चालू)
     needle_rot = -12 if is_on else -45
-    
-    # बटणांचे ग्लो इफेक्ट्स (फोटोप्रमाणे)
     on_glow = "background: radial-gradient(circle, #00ff00, #004d00); box-shadow: 0 0 20px #00ff00; color: white; border: 2px solid #00ff00;" if is_on else "background: #111; color: #555; border: 2px solid #222;"
     off_glow = "background: radial-gradient(circle, #ff0000, #4d0000); box-shadow: 0 0 20px #ff0000; color: white; border: 2px solid #ff0000;" if not is_on else "background: #111; color: #555; border: 2px solid #222;"
 
-    html = f"""
-    <div style="background-color: #1c1c1c; padding: 15px; border-radius: 12px; border: 4px solid #333; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); text-align: center; margin-bottom: 10px;">
-        <div style="color: #ddd; font-weight: bold; font-size: 15px; margin-bottom: 10px; text-transform: uppercase;">{pump_name}</div>
-        
-        <div style="background-color: #f9f9f9; border-radius: 6px; padding: 10px; margin-bottom: 15px; border: 2px solid #aaa; position: relative; height: 85px;">
-            <svg width="100%" height="100%" viewBox="0 0 100 65">
-                <path d="M 15 45 A 40 40 0 0 1 85 45" fill="none" stroke="#222" stroke-width="1.5"/>
-                <text x="15" y="58" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">0</text>
-                <text x="35" y="22" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">10</text>
-                <text x="65" y="22" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">20</text>
-                <text x="85" y="58" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">30</text>
-                <text x="50" y="60" font-size="18" text-anchor="middle" font-family="sans-serif" font-weight="bold">A</text>
-                <line x1="50" y1="58" x2="50" y2="12" stroke="#222" stroke-width="2.5" transform="rotate({needle_rot} 50 58)" style="transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);"/>
-                <circle cx="50" cy="58" r="4" fill="black"/>
-            </svg>
-        </div>
-
-        <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;">
-            <div style="width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; {on_glow} transition: 0.3s;">ON</div>
-            <div style="width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; {off_glow} transition: 0.3s;">OFF</div>
-        </div>
-    </div>
-    """
+    # Space इंडेंटेशन काढून टाकले आहे जेणेकरून कोड दिसणार नाही!
+    html = f"""<div style="background-color: #1c1c1c; padding: 15px; border-radius: 12px; border: 4px solid #333; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); text-align: center; margin-bottom: 10px;">
+<div style="color: #ddd; font-weight: bold; font-size: 15px; margin-bottom: 10px; text-transform: uppercase;">{pump_name}</div>
+<div style="background-color: #f9f9f9; border-radius: 6px; padding: 10px; margin-bottom: 15px; border: 2px solid #aaa; position: relative; height: 85px;">
+<svg width="100%" height="100%" viewBox="0 0 100 65">
+<path d="M 15 45 A 40 40 0 0 1 85 45" fill="none" stroke="#222" stroke-width="1.5"/>
+<text x="15" y="58" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">0</text>
+<text x="35" y="22" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">10</text>
+<text x="65" y="22" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">20</text>
+<text x="85" y="58" font-size="11" text-anchor="middle" font-family="sans-serif" font-weight="bold">30</text>
+<text x="50" y="60" font-size="18" text-anchor="middle" font-family="sans-serif" font-weight="bold">A</text>
+<line x1="50" y1="58" x2="50" y2="12" stroke="#222" stroke-width="2.5" transform="rotate({needle_rot} 50 58)" style="transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);"/>
+<circle cx="50" cy="58" r="4" fill="black"/>
+</svg>
+</div>
+<div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;">
+<div style="width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; {on_glow} transition: 0.3s;">ON</div>
+<div style="width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; {off_glow} transition: 0.3s;">OFF</div>
+</div>
+</div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # कंट्रोल बटन्स (स्टार्टर चालू/बंद करण्यासाठी)
     bc1, bc2 = col_obj.columns(2)
     bc1.button("🟢 ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("🔴 OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
@@ -121,7 +113,7 @@ tank1_lvl = 45; tank2_lvl = 60; ug_lvl = 75
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
-    # --- 🛡️ सुरक्षा प्रणाली (Burglar Alarm) पॅनेल ---
+    # --- 🛡️ सुरक्षा प्रणाली ---
     with st.container(border=True):
         alarm_bg = "#ffebee" if trigger_siren else ("#e8f5e9" if st.session_state.alarm_armed else "#f5f5f5")
         st.markdown(f"<div style='background-color: {alarm_bg}; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; transition: 0.3s;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
@@ -132,7 +124,7 @@ with col_right:
     live_power = "3.2 kW" if sim_solar else "0.0 kW"
     line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if sim_solar else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
     status_color = "#2e7d32" if sim_solar else "#c62828"
-    status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे" if sim_solar else "🔴 सौर ऊर्जेची निर्मिती बंद आहे"
+    status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे" if sim_solar else "🔴 सौर ऊर्जेची निर्मिती बंद আসতে"
 
     solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><line x1="20" y1="2" x2="20" y2="7" stroke="#FFA500" stroke-width="2"/><line x1="20" y1="38" x2="20" y2="33" stroke="#FFA500" stroke-width="2"/><line x1="2" y1="20" x2="7" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="38" y1="20" x2="33" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="7" x2="11" y2="11" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="33" x2="29" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="33" x2="11" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="7" x2="29" y2="11" stroke="#FFA500" stroke-width="2"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/><line x1="40" y1="60" x2="77" y2="55" stroke="#ddd" stroke-width="1.5"/><line x1="53" y1="35" x2="42" y2="82" stroke="#ddd" stroke-width="1.5"/><line x1="68" y1="32" x2="57" y2="80" stroke="#ddd" stroke-width="1.5"/></svg>"""
     grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
@@ -142,7 +134,7 @@ with col_right:
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{live_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>14.5 kWh</div></div></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
 
-    # --- 🎛️ नवीन: 'स्टार्टर पॅनल्स' ---
+    # --- 🎛️ स्टार्टर पॅनल्स ---
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल रूम</h5></div>", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
@@ -150,7 +142,7 @@ with col_right:
         render_starter_panel(c2, "BOREWELL 1", "bw1_pump")
         render_starter_panel(c3, "BOREWELL 2", "bw2_pump")
 
-    # --- कार्ड ३: वाल्व्ह (कॉक) ---
+    # --- वाल्व्ह (कॉक) ---
     with st.container(border=True):
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक)</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
@@ -213,7 +205,7 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 🚨 सर्वात महत्त्वाचे: अलार्म आणि ऑडिओ लॉजिक
+# 🚨 सायरन आणि ऑडिओ लॉजिक
 # ---------------------------------------------------------
 if trigger_siren:
     top_banner.markdown("""
