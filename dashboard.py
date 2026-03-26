@@ -19,17 +19,17 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 मोबाईलवर ON/OFF बटणे शेजारी ठेवण्यासाठी खास CSS 🌟 */
+/* 🌟 मोबाईलवर ON/OFF बटणे शेजारीच ठेवण्यासाठी (Column Lock Hack) 🌟 */
 @media (max-width: 768px) {
-    div[data-testid="element-container"]:has(.btn-row-marker) + div[data-testid="stHorizontalBlock"] {
+    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:nth-child(2):last-child {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
+        gap: 10px !important;
     }
-    div[data-testid="element-container"]:has(.btn-row-marker) + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:nth-child(2):last-child > div[data-testid="column"] {
         width: 50% !important;
         min-width: 50% !important;
         flex: 1 1 50% !important;
-        padding: 0 2px !important;
     }
 }
 </style>
@@ -110,13 +110,12 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 CSS हॅक ट्रिगर करण्यासाठी अदृश्य मार्कर 🌟
-    col_obj.markdown("<div class='btn-row-marker'></div>", unsafe_allow_html=True)
-    
-    # जुनी साधी बटणे
-    bc1, bc2 = col_obj.columns(2)
-    bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
-    bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
+    # 🌟 येथे आपण एक 'Container' वापरला आहे ज्याला CSS ने मोबाईलवर शेजारी ठेवले जाईल 🌟
+    with col_obj.container():
+        st.markdown("<div style='display:none;'></div>", unsafe_allow_html=True)
+        bc1, bc2 = st.columns(2)
+        bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
+        bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
 # मुख्य डॅशबोर्ड लेआउट (Columns)
 col_left, col_right = st.columns([1.5, 1])
@@ -152,6 +151,8 @@ with col_right:
         render_compact_starter(sc1, "UG PUMP", "ug_pump")
         render_compact_starter(sc2, "BW-1", "bw1_pump")
         render_compact_starter(sc3, "BW-2", "bw2_pump")
+        # हा छुपा घटक CSS हॅक सुरक्षित ठेवतो
+        st.markdown("<div style='display:none;'></div>", unsafe_allow_html=True)
 
     # 🎛️ ५. वाल्व्ह (कॉक)
     with st.container(border=True):
@@ -160,6 +161,7 @@ with col_right:
         with v1: valve_t1 = st.toggle("V1 (Tank 1)", value=False); draw_knob(valve_t1)
         with v2: valve_t2 = st.toggle("V2 (Tank 2)", value=False); draw_knob(valve_t2)
         with v3: valve_ug = st.toggle("V3 (UG Tank)", value=False); draw_knob(valve_ug)
+        st.markdown("<div style='display:none;'></div>", unsafe_allow_html=True)
 
     # --- लॉजिक अपडेट ---
     trigger_siren = st.session_state.alarm_armed and simulate_motion
@@ -226,7 +228,7 @@ with cam_col2:
     st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 📢 बोलणारी 'मराठी व्हाईस' आणि सायरन सिस्टीम 
+# 📢 परत आलेली 'बोलणारी' ऑडिओ आणि सायरन सिस्टीम
 # ---------------------------------------------------------
 if trigger_siren:
     top_banner.markdown("""
@@ -247,7 +249,7 @@ else:
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
-# 🗣️ 🌟 दुरुस्त केलेले मराठी व्हाईस अलर्ट्स लॉजिक 🌟
+# 🗣️ जुना आणि परफेक्ट चालणारा मराठी व्हाईस अलर्ट (Text-to-Speech)
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
@@ -267,10 +269,7 @@ elif garden_watering:
 if 'last_speech' not in st.session_state:
     st.session_state.last_speech = ""
 
-# जर काहीच अलर्ट नसेल तर सिस्टीम 'रिसेट' होते (म्हणजे पुढच्या वेळी आवाज हमखास येईल)
-if alert_to_speak == "":
-    st.session_state.last_speech = ""
-elif alert_to_speak != st.session_state.last_speech:
+if alert_to_speak and alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>"
     components.html(tts_js, height=0, width=0)
