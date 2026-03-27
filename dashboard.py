@@ -29,7 +29,7 @@ css = """
 
 /* 🌟 फक्त मोबाईल व्ह्यूसाठी खास सेटिंग्ज (Max Width 768px) 🌟 */
 @media (max-width: 768px) {
-    /* १. स्टार्टर मधील ON/OFF बटणे एका रांगेत ठेवणे आणि 'F' खाली न येणे */
+    /* १. स्टार्टर मधील ON/OFF बटणे एका रांगेत ठेवणे आणि फॉन्ट लहान करणे */
     div[data-testid="column"]:has(.starter-marker) div[data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
@@ -39,11 +39,13 @@ css = """
         width: 50% !important;
         min-width: 0 !important;
         flex: 1 1 50% !important;
+        padding: 0 2px !important; /* जागा वाचवण्यासाठी पॅडिंग कमी केले */
     }
     div[data-testid="column"]:has(.starter-marker) .stButton button {
-        white-space: nowrap !important; /* 'F' खाली जाण्यापासून रोखते */
-        font-size: 13px !important;     /* मोबाईलवर सुटसुटीत दिसावे म्हणून थोडा लहान फॉन्ट */
-        padding: 4px 2px !important;
+        white-space: nowrap !important; 
+        font-size: 10px !important;     /* 🌟 फॉन्ट अधिक लहान केला जेणेकरून रॅप होणार नाही 🌟 */
+        padding: 2px 2px !important;    /* आतील जागा कमी केली */
+        line-height: 1.2 !important;
     }
 
     /* २. वाल्व्ह लहान करून एकाच रांगेत बसवणे */
@@ -144,7 +146,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
-# 🎛️ ५. नवीन ॲनिमेटेड वाल्व्ह डिझाईन (Toggle काढले आहे)
+# 🎛️ ५. नवीन ॲनिमेटेड वाल्व्ह डिझाईन
 def render_animated_valve(col_obj, valve_name, is_on):
     handle_rot = 90 if is_on else 0 
     handle_color = "#2ecc71" if is_on else "#e74c3c"
@@ -215,7 +217,7 @@ with col_right:
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{live_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>14.5 kWh</div></div></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
 
-    # ⚡ कंट्रोल पॅनल (जुने आणि अचूक)
+    # ⚡ कंट्रोल पॅनल
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल पॅनल</h5></div>", unsafe_allow_html=True)
         sc1, sc2, sc3 = st.columns(3)
@@ -223,7 +225,7 @@ with col_right:
         render_compact_starter(sc2, "BW-1", "bw1_pump")
         render_compact_starter(sc3, "BW-2", "bw2_pump")
 
-    # 🎛️ वाल्व्ह पॅनल (येथे आता फक्त ॲनिमेटेड डिझाईन आहे)
+    # 🎛️ वाल्व्ह पॅनल 
     with st.container(border=True):
         st.markdown("<div class='valves-container-marker' style='display:none;'></div>", unsafe_allow_html=True)
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक) स्थिती</h5></div>", unsafe_allow_html=True)
@@ -307,7 +309,7 @@ else:
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
-# 🗣️ न थांबणारे ऑडिओ लॉजिक (Timestamp Hack)
+# 🗣️ न थांबणारे ऑडिओ लॉजिक
 alert_to_speak = ""
 if trigger_siren:
     alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
