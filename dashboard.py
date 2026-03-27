@@ -93,8 +93,8 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </svg>
 </div>
 <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 5px;">
-<div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; {on_glow} transition: 0.3s;">ON</div>
-<div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; {off_glow} transition: 0.3s;">OFF</div>
+<div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px; {on_glow} transition: 0.3s;">ON</div>
+<div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 6px; {off_glow} transition: 0.3s;">OFF</div>
 </div>
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
