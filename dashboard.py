@@ -5,7 +5,7 @@ import time
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. अत्यंत सुरक्षित आणि प्रगत CSS (कोणताही ओव्हरलॅप न होण्यासाठी)
+# १. प्रगत CSS (डेस्कटॉप सुरक्षित ठेवून फक्त मोबाईलसाठी अचूक बदल)
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -20,56 +20,71 @@ css = """
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 
-/* 🌟 १. ON/OFF बटणे १००% शेजारी ठेवण्यासाठी सुरक्षित CSS (डेस्कटॉप व मोबाईल दोन्हीकडे) 🌟 */
-div.element-container:has(div[data-testid="stButton"]) {
-    display: inline-block !important;
-    width: 47% !important;
-    margin: 0 1% !important;
-    vertical-align: top;
-}
-div[data-testid="stButton"] {
-    width: 100% !important;
-}
-div[data-testid="stButton"] button {
-    width: 100% !important;
+/* डेस्कटॉपसाठी बटणांचा मूळ आणि सुरक्षित फॉन्ट */
+.stButton button {
     font-weight: 900 !important;
     border-radius: 6px !important;
     border: 2px solid #555 !important;
-    padding: 5px 0 !important;
 }
 
-/* 🌟 २. मोबाईलवर ३ व्हॉल्व्ह सुरक्षितपणे एका रांगेत ठेवण्यासाठी (Overlap Fix) 🌟 */
+/* 🌟 फक्त मोबाईल व्ह्यूसाठी खास सेटिंग्ज (Max Width 768px) 🌟 */
 @media (max-width: 768px) {
-    div.element-container:has(#valves-row-wrapper) + div[data-testid="stHorizontalBlock"] {
+    /* १. स्टार्टर मधील ON/OFF बटणे एका रांगेत ठेवणे आणि 'F' खाली न येणे */
+    div[data-testid="column"]:has(.starter-marker) div[data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         gap: 5px !important;
     }
-    div.element-container:has(#valves-row-wrapper) + div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    div[data-testid="column"]:has(.starter-marker) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 50% !important;
+        min-width: 0 !important;
+        flex: 1 1 50% !important;
+    }
+    div[data-testid="column"]:has(.starter-marker) .stButton button {
+        white-space: nowrap !important; /* 'F' खाली जाण्यापासून रोखते */
+        font-size: 13px !important;     /* मोबाईलवर सुटसुटीत दिसावे म्हणून थोडा लहान फॉन्ट */
+        padding: 4px 2px !important;
+    }
+
+    /* २. वाल्व्ह लहान करून एकाच रांगेत बसवणे */
+    div[data-testid="stVerticalBlock"]:has(.valves-container-marker) > div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 2px !important;
+    }
+    div[data-testid="stVerticalBlock"]:has(.valves-container-marker) > div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         width: 33.33% !important;
         min-width: 0 !important;
         flex: 1 1 33.33% !important;
-        padding: 0 2px !important;
+    }
+    .valve-indicator {
+        transform: scale(0.80); /* मोबाईलवर वाल्व्हचा आकार लहान करते */
+        transform-origin: top center;
     }
 }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# 🌟 'Top Banner' आणि 'स्थितीदर्शक' साठी जागा
+# 🌟 'Top Banner' साठी जागा
 top_banner = st.empty()
 
-# ⚙️ टेस्टिंग सिम्युलेटर 
+# ⚙️ टेस्टिंग सिम्युलेटर (लपलेले साईडबार - येथे वाल्व्ह टॉगल हलवले आहेत!)
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
     sim_solar = st.checkbox("☀️ सोलर वीज निर्मिती चालू करा", value=True)
     st.markdown("---")
+    st.markdown("#### 🎛️ वाल्व्ह कंट्रोल (Manual)")
+    st.toggle("V1 (Tank 1) उघडा", key='toggle_v1')
+    st.toggle("V2 (Tank 2) उघडा", key='toggle_v2')
+    st.toggle("V3 (UG Tank) उघडा", key='toggle_v3')
+    st.markdown("---")
     st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
 
 # २. स्टेट्स (Session State)
-for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug']:
+for key in ['ug_pump', 'bw1_pump', 'bw2_pump']:
     if key not in st.session_state:
         st.session_state[key] = False
 
@@ -99,15 +114,14 @@ def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     return html
 
-# ४. स्टार्टर पॅनेल डिझाईन (Fixed Height वापरून अलाइनमेंट अचूक केली)
+# ४. स्टार्टर पॅनेल डिझाईन
 def render_compact_starter(col_obj, pump_name, state_key):
     is_on = st.session_state[state_key]
     needle_rot = -12 if is_on else -45
     on_glow = "background: radial-gradient(circle, #00ff00, #004d00); box-shadow: 0 0 10px #00ff00; color: white; border: 1px solid #00ff00;" if is_on else "background: #111; color: #555; border: 1px solid #222;"
     off_glow = "background: radial-gradient(circle, #ff0000, #4d0000); box-shadow: 0 0 10px #ff0000; color: white; border: 1px solid #ff0000;" if not is_on else "background: #111; color: #555; border: 1px solid #222;"
 
-    # 🌟 उंची 160px निश्चित केली आहे, जेणेकरून तिन्ही पंप अचूक एका रेषेत दिसतील 🌟
-    html = f"""<div style="background-color: #1c1c1c; padding: 10px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 8px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3); height: 160px; box-sizing: border-box;">
+    html = f"""<div class='starter-marker' style="background-color: #1c1c1c; padding: 10px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 8px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
 <div style="color: #ddd; font-weight: bold; font-size: 11px; margin-bottom: 8px; text-transform: uppercase;">{pump_name}</div>
 <div style="background-color: #f9f9f9; border-radius: 4px; padding: 5px; margin-bottom: 10px; border: 1px solid #aaa; position: relative; height: 50px;">
 <svg width="100%" height="100%" viewBox="0 0 100 65">
@@ -126,21 +140,17 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     
-    # 🌟 कॉलम्स न वापरता थेट बटणे: CSS मुळे ती १००% शेजारी-शेजारी बसतील 🌟
-    col_obj.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True))
-    col_obj.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False))
+    bc1, bc2 = col_obj.columns(2)
+    bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
+    bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
-# 🎛️ ५. नवीन ॲनिमेटेड वाल्व्ह डिझाईन
-def render_animated_valve(col_obj, valve_name, state_key):
-    is_on = st.session_state[state_key]
-    
-    # ON = 12 वाजता (90 अंश), OFF = 9 वाजता (0 अंश)
+# 🎛️ ५. नवीन ॲनिमेटेड वाल्व्ह डिझाईन (Toggle काढले आहे)
+def render_animated_valve(col_obj, valve_name, is_on):
     handle_rot = 90 if is_on else 0 
     handle_color = "#2ecc71" if is_on else "#e74c3c"
     status_text = "ON" if is_on else "OFF"
     
-    # 🌟 उंची निश्चित केली जेणेकरून वाल्व्ह अलाइन राहतील 🌟
-    html = f"""<div style="text-align: center; margin-bottom: 5px; height: 130px; box-sizing: border-box;">
+    html = f"""<div class='valve-indicator' style="text-align: center; margin-bottom: 5px;">
 <div style="font-size: 12px; font-weight: bold; color: #333; margin-bottom: 5px;">{valve_name}</div>
 <svg width="60" height="90" viewBox="0 0 60 90">
 <rect x="22" y="0" width="16" height="90" fill="#95a5a6" />
@@ -155,9 +165,30 @@ def render_animated_valve(col_obj, valve_name, state_key):
 <div style="font-size: 14px; font-weight: 900; color: {handle_color}; margin-top: 2px;">{status_text}</div>
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
-    col_obj.toggle(valve_name, key=state_key, label_visibility="collapsed")
 
-# मुख्य डॅशबोर्ड लेआउट
+# ---------------------------------------------------------
+# 🧠 मुख्य लॉजिक (सिमुलेटर टॉगल्स वाचणे)
+# ---------------------------------------------------------
+trigger_siren = st.session_state.alarm_armed and simulate_motion
+ug_pump = st.session_state['ug_pump']
+bw1_pump = st.session_state['bw1_pump']
+bw2_pump = st.session_state['bw2_pump']
+
+# वाल्व्हचे कंट्रोल आता साईडबार मधील टॉगल मधून येतात
+valve_t1 = st.session_state.get('toggle_v1', False)
+valve_t2 = st.session_state.get('toggle_v2', False)
+valve_ug = st.session_state.get('toggle_v3', False)
+
+any_pump_on = ug_pump or bw1_pump or bw2_pump
+any_borewell_on = bw1_pump or bw2_pump
+tank1_pouring = valve_t1 and any_pump_on
+tank2_pouring = valve_t2 and any_pump_on
+ug_pouring_from_bw = valve_ug and any_borewell_on
+ug_pouring_from_tanker = sim_tanker
+garden_watering = ug_pump and not valve_t1 and not valve_t2
+is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
+
+# ५. मुख्य डॅशबोर्ड लेआउट
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
@@ -184,7 +215,7 @@ with col_right:
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{live_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>14.5 kWh</div></div></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
 
-    # ⚡ कंट्रोल पॅनल
+    # ⚡ कंट्रोल पॅनल (जुने आणि अचूक)
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल पॅनल</h5></div>", unsafe_allow_html=True)
         sc1, sc2, sc3 = st.columns(3)
@@ -192,40 +223,17 @@ with col_right:
         render_compact_starter(sc2, "BW-1", "bw1_pump")
         render_compact_starter(sc3, "BW-2", "bw2_pump")
 
-    # 🎛️ वाल्व्ह पॅनल
+    # 🎛️ वाल्व्ह पॅनल (येथे आता फक्त ॲनिमेटेड डिझाईन आहे)
     with st.container(border=True):
-        st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक)</h5></div>", unsafe_allow_html=True)
-        
-        # 🌟 मोबाईलवर वाल्व्ह शेजारी ठेवण्यासाठी सुरक्षित मार्कर 🌟
-        st.markdown("<div id='valves-row-wrapper' style='display:none;'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='valves-container-marker' style='display:none;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक) स्थिती</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
         with v1:
-            render_animated_valve(v1, "V1 (Tank 1)", "valve_t1")
+            render_animated_valve(v1, "V1 (Tank 1)", valve_t1)
         with v2:
-            render_animated_valve(v2, "V2 (Tank 2)", "valve_t2")
+            render_animated_valve(v2, "V2 (Tank 2)", valve_t2)
         with v3:
-            render_animated_valve(v3, "V3 (UG)", "valve_ug")
-
-    # ---------------------------------------------------------
-    # 🧠 लॉजिक
-    # ---------------------------------------------------------
-    trigger_siren = st.session_state.alarm_armed and simulate_motion
-    ug_pump = st.session_state['ug_pump']
-    bw1_pump = st.session_state['bw1_pump']
-    bw2_pump = st.session_state['bw2_pump']
-    
-    valve_t1 = st.session_state['valve_t1']
-    valve_t2 = st.session_state['valve_t2']
-    valve_ug = st.session_state['valve_ug']
-    
-    any_pump_on = ug_pump or bw1_pump or bw2_pump
-    any_borewell_on = bw1_pump or bw2_pump
-    tank1_pouring = valve_t1 and any_pump_on
-    tank2_pouring = valve_t2 and any_pump_on
-    ug_pouring_from_bw = valve_ug and any_borewell_on
-    ug_pouring_from_tanker = sim_tanker
-    garden_watering = ug_pump and not valve_t1 and not valve_t2
-    is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
+            render_animated_valve(v3, "V3 (UG Tank)", valve_ug)
 
     # 📋 स्थितीदर्शक बोर्ड अपडेट
     with status_board.container(border=True):
