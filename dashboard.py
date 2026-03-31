@@ -26,7 +26,7 @@ def get_solarman_token():
             "password": hashed_password
         }
 
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=10)
         data = response.json()
 
         if data.get("success"):
@@ -51,20 +51,20 @@ def fetch_live_solar_data():
         app_id = st.secrets["sofar"]["app_id"]
         headers = {"Authorization": f"bearer {token}"}
         
-        # स्टेप १: तुमच्या प्लांटचा (Station) ID शोधणे
+        # स्टेप १: स्टेशन ID शोधणे
         url_list = f"https://globalapi.solarmanpv.com/station/v1.0/list?appId={app_id}&language=en"
-        res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10})
+        res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10}, timeout=10)
         station_data = res_list.json()
         
         if not station_data.get("success") or not station_data.get("stationList"):
-            st.error("⚠️ Solarman खात्यावर कोणताही प्लांट (इन्व्हर्टर) जोडलेला आढळला नाही.")
+            st.error("⚠️ Solarman खात्यावर कोणताही प्लांट जोडलेला आढळला नाही.")
             return None
             
         station_id = station_data["stationList"][0]["id"]
         
-        # स्टेप २: त्या प्लांटचा लाईव्ह डेटा आणणे
+        # स्टेप २: लाईव्ह डेटा आणणे
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
-        res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id})
+        res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
         live_data = res_realtime.json()
         
         if live_data.get("success"):
@@ -102,36 +102,50 @@ st.markdown(css, unsafe_allow_html=True)
 top_banner = st.empty()
 
 # ---------------------------------------------------------
-# ⚙️ ४. टेस्टिंग सिम्युलेटर आणि साईडबार
+# ४. स्टेट्स (Session State)
 # ---------------------------------------------------------
-with st.sidebar:
-    st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
-    sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
-    sim_solar = st.checkbox("☀️ सोलर वीज निर्मिती चालू करा", value=True)
-    st.markdown("---")
-    st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
-    simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
-    st.markdown("---")
-    st.markdown("#### 🔌 सोलर API टेस्टिंग")
-    if st.button("☀️ सोलरचा Live Data पहा"):
-        with st.spinner("इन्व्हर्टरकडून लाईव्ह डेटा आणत आहे..."):
-            data = fetch_live_solar_data()
-            if data:
-                st.success("✅ डेटा यशस्वीरीत्या प्राप्त झाला!")
-                st.json(data) # हा कच्चा डेटा स्क्रीनवर दाखवेल
-
-# ५. स्टेट्स (Session State)
-for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug']:
+for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug', 'is_solar_live']:
     if key not in st.session_state:
         st.session_state[key] = False
 
-if 'alarm_armed' not in st.session_state:
-    st.session_state.alarm_armed = False
+if 'alarm_armed' not in st.session_state: st.session_state.alarm_armed = False
+if 'real_solar_power' not in st.session_state: st.session_state.real_solar_power = 0.0
+if 'real_solar_total' not in st.session_state: st.session_state.real_solar_total = 0.0
 
 def set_pump_state(key, state):
     st.session_state[key] = state
 
+# ---------------------------------------------------------
+# ⚙️ ५. साईडबार आणि API कंट्रोल्स
+# ---------------------------------------------------------
+with st.sidebar:
+    st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
+    sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
+    sim_solar = st.checkbox("☀️ सोलर वीज निर्मिती चालू करा (Simulator)", value=True)
+    st.markdown("---")
+    st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
+    simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
+    st.markdown("---")
+    st.markdown("#### 🔌 खऱ्या सोलरचे API कनेक्शन")
+    
+    if st.button("🔄 लाईव्ह डेटा रिफ्रेश करा", type="primary"):
+        with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत आहे..."):
+            data = fetch_live_solar_data()
+            if data:
+                # Solarman API सहसा 'Watts' मध्ये वीज पाठवते. (उदा. 3200 W = 3.2 kW)
+                power_watts = float(data.get("generationPower", 0))
+                power_kw = power_watts / 1000.0 if power_watts > 10 else power_watts
+                
+                total_energy = float(data.get("generationTotal", 0))
+                
+                st.session_state.real_solar_power = power_kw
+                st.session_state.real_solar_total = total_energy
+                st.session_state.is_solar_live = True
+                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
+
+# ---------------------------------------------------------
 # ६. टाक्यांचे डिझाईन 
+# ---------------------------------------------------------
 def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
@@ -236,19 +250,36 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा
-    solar_glow = "animation: sunGlow 3s infinite;" if sim_solar else "border: 1px solid #ccc;"
-    live_power = "3.2 kW" if sim_solar else "0.0 kW"
-    line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if sim_solar else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-    status_color = "#2e7d32" if sim_solar else "#c62828"
-    status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे" if sim_solar else "🔴 सौर ऊर्जेची निर्मिती बंद आहे"
+    # ☀️ सोलर ऊर्जा (Live vs Simulator Logic)
+    if st.session_state.is_solar_live:
+        # Live Data Logic
+        current_power = st.session_state.real_solar_power
+        total_kwh = st.session_state.real_solar_total
+        is_generating = current_power > 0
+        
+        display_power = f"{current_power:.2f} kW"
+        display_total = f"{total_kwh} kWh"
+        solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
+        line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+        status_color = "#2e7d32" if is_generating else "#c62828"
+        status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती बंद आहे (किंवा रात्र आहे)"
+        data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
+    else:
+        # Simulator Logic
+        display_power = "3.2 kW" if sim_solar else "0.0 kW"
+        display_total = "14.5 kWh"
+        solar_glow = "animation: sunGlow 3s infinite;" if sim_solar else "border: 1px solid #ccc;"
+        line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if sim_solar else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+        status_color = "#2e7d32" if sim_solar else "#c62828"
+        status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Simulator)" if sim_solar else "🔴 सौर निर्मिती बंद आहे (Simulator)"
+        data_source_badge = "<span style='background-color: #ff9800; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>⚠️ SIMULATOR</span>"
 
     solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><line x1="20" y1="2" x2="20" y2="7" stroke="#FFA500" stroke-width="2"/><line x1="20" y1="38" x2="20" y2="33" stroke="#FFA500" stroke-width="2"/><line x1="2" y1="20" x2="7" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="38" y1="20" x2="33" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="7" x2="11" y2="11" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="33" x2="29" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="33" x2="11" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="7" x2="29" y2="11" stroke="#FFA500" stroke-width="2"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/><line x1="40" y1="60" x2="77" y2="55" stroke="#ddd" stroke-width="1.5"/><line x1="53" y1="35" x2="42" y2="82" stroke="#ddd" stroke-width="1.5"/><line x1="68" y1="32" x2="57" y2="80" stroke="#ddd" stroke-width="1.5"/></svg>"""
     grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
 
     with st.container(border=True):
-        st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; {solar_glow}'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{live_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>14.5 kWh</div></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; position: relative; {solar_glow}'><div style='position: absolute; top: 5px; right: 5px;'>{data_source_badge}</div><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजपर्यंत एकूण वीज</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_total}</div></div></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
 
     # ⚡ कंट्रोल पॅनल
