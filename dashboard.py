@@ -8,34 +8,27 @@ import requests
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
 # ---------------------------------------------------------
-# 🔐 Solarman (Sofar) API सुरक्षित टोकन मिळवण्याचे फंक्शन
+# 🔐 १. Solarman (Sofar) API सुरक्षित टोकन मिळवणे
 # ---------------------------------------------------------
 def get_solarman_token():
     try:
-        # १. Secrets मधून लपवलेली माहिती घेणे (GitHub वर दिसणार नाही)
         app_id = st.secrets["sofar"]["app_id"]
         app_secret = st.secrets["sofar"]["app_secret"]
         email = st.secrets["sofar"]["email"]
         raw_password = st.secrets["sofar"]["password"]
 
-        # २. पासवर्डला SHA-256 मध्ये सुरक्षितपणे एन्क्रिप्ट करणे (lowercase मध्ये)
         hashed_password = hashlib.sha256(raw_password.encode('utf-8')).hexdigest().lower()
 
-        # ३. API ची URL 
         url = f"https://globalapi.solarmanpv.com/account/v1.0/token?appId={app_id}&language=en"
-
-        # ४. Body मध्ये माहिती पाठवणे
         payload = {
             "appSecret": app_secret,
             "email": email,
             "password": hashed_password
         }
 
-        # ५. सर्व्हरला Request पाठवणे
         response = requests.post(url, json=payload)
         data = response.json()
 
-        # ६. उत्तर तपासणे
         if data.get("success"):
             return data.get("access_token")
         else:
@@ -47,7 +40,45 @@ def get_solarman_token():
         return None
 
 # ---------------------------------------------------------
-# १. अतिशय साधा आणि सुरक्षित CSS
+# ☀️ २. इन्व्हर्टरचा Live Data मिळवण्याचे फंक्शन
+# ---------------------------------------------------------
+def fetch_live_solar_data():
+    token = get_solarman_token()
+    if not token:
+        return None
+    
+    try:
+        app_id = st.secrets["sofar"]["app_id"]
+        headers = {"Authorization": f"bearer {token}"}
+        
+        # स्टेप १: तुमच्या प्लांटचा (Station) ID शोधणे
+        url_list = f"https://globalapi.solarmanpv.com/station/v1.0/list?appId={app_id}&language=en"
+        res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10})
+        station_data = res_list.json()
+        
+        if not station_data.get("success") or not station_data.get("stationList"):
+            st.error("⚠️ Solarman खात्यावर कोणताही प्लांट (इन्व्हर्टर) जोडलेला आढळला नाही.")
+            return None
+            
+        station_id = station_data["stationList"][0]["id"]
+        
+        # स्टेप २: त्या प्लांटचा लाईव्ह डेटा आणणे
+        url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
+        res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id})
+        live_data = res_realtime.json()
+        
+        if live_data.get("success"):
+            return live_data
+        else:
+            st.error("⚠️ लाईव्ह डेटा मिळवण्यात अडचण आली.")
+            return None
+            
+    except Exception as e:
+        st.error(f"⚠️ डेटा फेचिंग एरर: {e}")
+        return None
+
+# ---------------------------------------------------------
+# ३. अतिशय साधा आणि सुरक्षित CSS
 # ---------------------------------------------------------
 css = """
 <style>
@@ -71,7 +102,7 @@ st.markdown(css, unsafe_allow_html=True)
 top_banner = st.empty()
 
 # ---------------------------------------------------------
-# ⚙️ टेस्टिंग सिम्युलेटर आणि साईडबार
+# ⚙️ ४. टेस्टिंग सिम्युलेटर आणि साईडबार
 # ---------------------------------------------------------
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
@@ -82,16 +113,14 @@ with st.sidebar:
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
     st.markdown("---")
     st.markdown("#### 🔌 सोलर API टेस्टिंग")
-    if st.button("📡 API कनेक्शन टेस्ट करा"):
-        with st.spinner("Solarman सर्व्हरशी संपर्क साधत आहे..."):
-            token = get_solarman_token()
-            if token:
-                st.success("✅ कनेक्शन यशस्वी! Token मिळाला.")
-                st.info(f"Token: {token[:15]}........ (सुरक्षित)")
-            else:
-                st.error("❌ कनेक्शन फेल झाले. Secrets माहिती तपासा.")
+    if st.button("☀️ सोलरचा Live Data पहा"):
+        with st.spinner("इन्व्हर्टरकडून लाईव्ह डेटा आणत आहे..."):
+            data = fetch_live_solar_data()
+            if data:
+                st.success("✅ डेटा यशस्वीरीत्या प्राप्त झाला!")
+                st.json(data) # हा कच्चा डेटा स्क्रीनवर दाखवेल
 
-# २. स्टेट्स (Session State)
+# ५. स्टेट्स (Session State)
 for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug']:
     if key not in st.session_state:
         st.session_state[key] = False
@@ -102,7 +131,7 @@ if 'alarm_armed' not in st.session_state:
 def set_pump_state(key, state):
     st.session_state[key] = state
 
-# ३. टाक्यांचे डिझाईन 
+# ६. टाक्यांचे डिझाईन 
 def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
@@ -122,7 +151,7 @@ def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     return html
 
-# ४. स्टार्टर पॅनेल डिझाईन
+# ७. स्टार्टर पॅनेल डिझाईन
 def render_compact_starter(col_obj, pump_name, state_key):
     is_on = st.session_state[state_key]
     needle_rot = -12 if is_on else -45
@@ -151,7 +180,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
-# 🎛️ ५. ॲनिमेटेड वाल्व्ह डिझाईन
+# 🎛️ ८. ॲनिमेटेड वाल्व्ह डिझाईन
 def render_animated_valve(col_obj, valve_name, state_key):
     is_on = st.session_state[state_key]
     handle_rot = 90 if is_on else 0 
@@ -176,7 +205,7 @@ def render_animated_valve(col_obj, valve_name, state_key):
     col_obj.toggle(valve_name, key=state_key, label_visibility="collapsed")
 
 # ---------------------------------------------------------
-# 🧠 मुख्य लॉजिक
+# 🧠 ९. मुख्य लॉजिक
 # ---------------------------------------------------------
 trigger_siren = st.session_state.alarm_armed and simulate_motion
 ug_pump = st.session_state['ug_pump']
@@ -196,7 +225,7 @@ ug_pouring_from_tanker = sim_tanker
 garden_watering = ug_pump and not valve_t1 and not valve_t2
 is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
 
-# ५. मुख्य डॅशबोर्ड लेआउट
+# १०. मुख्य डॅशबोर्ड लेआउट
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
@@ -287,7 +316,7 @@ with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Cam
 with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 📢 ७. बोलणारी 'मराठी व्हाईस' आणि सायरन सिस्टीम 
+# 📢 ११. बोलणारी 'मराठी व्हाईस' आणि सायरन सिस्टीम 
 # ---------------------------------------------------------
 if trigger_siren:
     top_banner.markdown("""
