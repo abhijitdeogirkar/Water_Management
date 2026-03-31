@@ -2,10 +2,53 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import time
+import hashlib
+import requests
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
-# १. अतिशय साधा आणि सुरक्षित CSS (कोणतेही लेआउट बिघडवणारे हॅक्स नाहीत)
+# ---------------------------------------------------------
+# 🔐 Solarman (Sofar) API सुरक्षित टोकन मिळवण्याचे फंक्शन
+# ---------------------------------------------------------
+def get_solarman_token():
+    try:
+        # १. Secrets मधून लपवलेली माहिती घेणे (GitHub वर दिसणार नाही)
+        app_id = st.secrets["sofar"]["app_id"]
+        app_secret = st.secrets["sofar"]["app_secret"]
+        email = st.secrets["sofar"]["email"]
+        raw_password = st.secrets["sofar"]["password"]
+
+        # २. पासवर्डला SHA-256 मध्ये सुरक्षितपणे एन्क्रिप्ट करणे (lowercase मध्ये)
+        hashed_password = hashlib.sha256(raw_password.encode('utf-8')).hexdigest().lower()
+
+        # ३. API ची URL 
+        url = f"https://globalapi.solarmanpv.com/account/v1.0/token?appId={app_id}&language=en"
+
+        # ४. Body मध्ये माहिती पाठवणे
+        payload = {
+            "appSecret": app_secret,
+            "email": email,
+            "password": hashed_password
+        }
+
+        # ५. सर्व्हरला Request पाठवणे
+        response = requests.post(url, json=payload)
+        data = response.json()
+
+        # ६. उत्तर तपासणे
+        if data.get("success"):
+            return data.get("access_token")
+        else:
+            st.error(f"⚠️ API Error: {data.get('msg')}")
+            return None
+
+    except Exception as e:
+        st.error(f"⚠️ कनेक्शनमध्ये अडचण (Secrets फाईल तपासा): {e}")
+        return None
+
+# ---------------------------------------------------------
+# १. अतिशय साधा आणि सुरक्षित CSS
+# ---------------------------------------------------------
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
@@ -19,13 +62,7 @@ css = """
 }
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
-
-/* सर्वसाधारण बटण डिझाईन */
-.stButton button {
-    font-weight: bold !important;
-    border-radius: 6px !important;
-    border: 2px solid #555 !important;
-}
+.stButton button { font-weight: bold !important; border-radius: 6px !important; border: 2px solid #555 !important; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -33,7 +70,9 @@ st.markdown(css, unsafe_allow_html=True)
 # 🌟 'Top Banner' साठी जागा
 top_banner = st.empty()
 
-# ⚙️ टेस्टिंग सिम्युलेटर
+# ---------------------------------------------------------
+# ⚙️ टेस्टिंग सिम्युलेटर आणि साईडबार
+# ---------------------------------------------------------
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
@@ -41,6 +80,16 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
+    st.markdown("---")
+    st.markdown("#### 🔌 सोलर API टेस्टिंग")
+    if st.button("📡 API कनेक्शन टेस्ट करा"):
+        with st.spinner("Solarman सर्व्हरशी संपर्क साधत आहे..."):
+            token = get_solarman_token()
+            if token:
+                st.success("✅ कनेक्शन यशस्वी! Token मिळाला.")
+                st.info(f"Token: {token[:15]}........ (सुरक्षित)")
+            else:
+                st.error("❌ कनेक्शन फेल झाले. Secrets माहिती तपासा.")
 
 # २. स्टेट्स (Session State)
 for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug']:
@@ -73,7 +122,7 @@ def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     return html
 
-# ४. स्टार्टर पॅनेल डिझाईन (जुने मीटर डिझाईन)
+# ४. स्टार्टर पॅनेल डिझाईन
 def render_compact_starter(col_obj, pump_name, state_key):
     is_on = st.session_state[state_key]
     needle_rot = -12 if is_on else -45
@@ -98,16 +147,13 @@ def render_compact_starter(col_obj, pump_name, state_key):
 </div>
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
-    
-    # मूळ स्ट्रीमलिट कॉलम्स (मोबाईलवर सुरक्षितपणे Stack होतील)
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
-# 🎛️ ५. ॲनिमेटेड वाल्व्ह डिझाईन (तुमच्या फोटोवर आधारित)
+# 🎛️ ५. ॲनिमेटेड वाल्व्ह डिझाईन
 def render_animated_valve(col_obj, valve_name, state_key):
     is_on = st.session_state[state_key]
-    
     handle_rot = 90 if is_on else 0 
     handle_color = "#2ecc71" if is_on else "#e74c3c"
     status_text = "ON" if is_on else "OFF"
@@ -127,7 +173,6 @@ def render_animated_valve(col_obj, valve_name, state_key):
 <div style="font-size: 14px; font-weight: 900; color: {handle_color}; margin-top: 2px;">{status_text}</div>
 </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
-    # वाल्व्ह ऑपरेट करण्यासाठी टॉगल
     col_obj.toggle(valve_name, key=state_key, label_visibility="collapsed")
 
 # ---------------------------------------------------------
@@ -155,7 +200,6 @@ is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or u
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
-    # 🌟 स्थितीदर्शक बोर्ड
     status_board = st.empty()
 
     # 🛡️ सुरक्षा प्रणाली
@@ -190,12 +234,9 @@ with col_right:
     with st.container(border=True):
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक) स्थिती</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
-        with v1:
-            render_animated_valve(v1, "V1 (Tank 1)", "valve_t1")
-        with v2:
-            render_animated_valve(v2, "V2 (Tank 2)", "valve_t2")
-        with v3:
-            render_animated_valve(v3, "V3 (UG Tank)", "valve_ug")
+        with v1: render_animated_valve(v1, "V1 (Tank 1)", "valve_t1")
+        with v2: render_animated_valve(v2, "V2 (Tank 2)", "valve_t2")
+        with v3: render_animated_valve(v3, "V3 (UG Tank)", "valve_ug")
 
     # 📋 स्थितीदर्शक बोर्ड अपडेट
     with status_board.container(border=True):
@@ -242,10 +283,8 @@ placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; 
 recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
 
 cam_col1, cam_col2 = st.columns(2)
-with cam_col1:
-    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार (Main Gate)</div>", unsafe_allow_html=True)
-with cam_col2:
-    st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
+with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार (Main Gate)</div>", unsafe_allow_html=True)
+with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # 📢 ७. बोलणारी 'मराठी व्हाईस' आणि सायरन सिस्टीम 
@@ -265,32 +304,21 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-# पाण्याचा आवाज
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
-# 🗣️ न थांबणारे ऑडिओ लॉजिक (Timestamp Hack)
 alert_to_speak = ""
-if trigger_siren:
-    alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
-elif (valve_t1 or valve_t2) and not any_pump_on:
-    alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
-elif tank1_pouring and tank2_pouring:
-    alert_to_speak = "टाकी एक आणि टाकी दोन मध्ये पाणी भरत आहे."
-elif tank1_pouring:
-    alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
-elif tank2_pouring:
-    alert_to_speak = "टाकी दोन मध्ये पाणी भरत आहे."
-elif ug_pouring_from_bw or ug_pouring_from_tanker:
-    alert_to_speak = "अंडरग्राउंड टाकीत पाणी भरत आहे."
-elif garden_watering:
-    alert_to_speak = "गार्डन मध्ये पाणी दिले जात आहे."
+if trigger_siren: alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
+elif (valve_t1 or valve_t2) and not any_pump_on: alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
+elif tank1_pouring and tank2_pouring: alert_to_speak = "टाकी एक आणि टाकी दोन मध्ये पाणी भरत आहे."
+elif tank1_pouring: alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
+elif tank2_pouring: alert_to_speak = "टाकी दोन मध्ये पाणी भरत आहे."
+elif ug_pouring_from_bw or ug_pouring_from_tanker: alert_to_speak = "अंडरग्राउंड टाकीत पाणी भरत आहे."
+elif garden_watering: alert_to_speak = "गार्डन मध्ये पाणी दिले जात आहे."
 
-if 'last_speech' not in st.session_state:
-    st.session_state.last_speech = ""
+if 'last_speech' not in st.session_state: st.session_state.last_speech = ""
 
-if alert_to_speak == "":
-    st.session_state.last_speech = ""
+if alert_to_speak == "": st.session_state.last_speech = ""
 elif alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     tts_js = f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg); console.log('{time.time()}');</script>"
