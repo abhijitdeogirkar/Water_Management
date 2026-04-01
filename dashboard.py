@@ -11,47 +11,73 @@ from datetime import datetime
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
 # ---------------------------------------------------------
-# 🕉️ खगोलीय गणितानुसार आजची तिथी काढणे (Washim Location)
+# 🕉️ संपूर्ण हिंदू पंचांग गणित (तिथी, वार, नक्षत्र, योग, करण)
 # ---------------------------------------------------------
-def get_today_tithi():
+def get_today_panchang():
     observer = ephem.Observer()
     observer.lat = '20.1059' # Washim Latitude
     observer.lon = '77.1358' # Washim Longitude
-    observer.elevation = 414 # Elevation in meters
+    observer.elevation = 414
     
     now_utc = datetime.utcnow()
     observer.date = now_utc
     
-    try:
-        sunrise = observer.previous_rising(ephem.Sun())
-    except:
-        sunrise = now_utc
+    try: sunrise = observer.previous_rising(ephem.Sun())
+    except: sunrise = now_utc
         
     sun = ephem.Sun(sunrise)
     moon = ephem.Moon(sunrise)
     
+    # खगोलीय अंश (Tropical Longitude)
     sun_lon = math.degrees(ephem.Ecliptic(sun).lon)
     moon_lon = math.degrees(ephem.Ecliptic(moon).lon)
     
-    diff = (moon_lon - sun_lon) % 360
-    tithi_number = int(diff / 12) + 1
+    # वैदिक ज्योतिषानुसार 'अयनांश' (Lahiri Ayanamsa - अंदाजित 24.1 अंश)
+    ayanamsa = 24.11 
+    nirayana_sun = (sun_lon - ayanamsa) % 360
+    nirayana_moon = (moon_lon - ayanamsa) % 360
     
-    tithi_names = [
-        "", "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी",
-        "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी",
-        "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "पौर्णिमा",
-        "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी",
-        "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी",
-        "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "अमावस्या"
-    ]
+    # १. तिथी (Tithi) - (चंद्र आणि सूर्य यांच्यातील फरक)
+    tithi_diff = (moon_lon - sun_lon) % 360
+    tithi_num = int(tithi_diff / 12) + 1
     
-    name = tithi_names[tithi_number]
-    paksha = "शुक्ल पक्ष" if tithi_number <= 15 else "कृष्ण पक्ष"
+    tithi_names = ["", "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी", "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी", "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "पौर्णिमा", "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी", "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी", "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "अमावस्या"]
+    paksha = "शुक्ल पक्ष" if tithi_num <= 15 else "कृष्ण पक्ष"
+    tithi_name = f"{paksha} {tithi_names[tithi_num]}"
     
-    is_chaturthi = tithi_number in [4, 19]
-    is_ekadashi = tithi_number in [11, 26]
+    # २. नक्षत्र (Nakshatra) - 13 अंश 20 कला (13.333 अंश)
+    nakshatra_names = ["अश्विनी", "भरणी", "कृत्तिका", "रोहिणी", "मृगशीर्ष", "आर्द्रा", "पुनर्वसू", "पुष्य", "आश्लेषा", "मघा", "पूर्वा फाल्गुनी", "उत्तरा फाल्गुनी", "हस्त", "चित्रा", "स्वाती", "विशाखा", "अनुराधा", "ज्येष्ठा", "मूळ", "पूर्वाषाढा", "उत्तराषाढा", "श्रवण", "धनिष्ठा", "शततारका", "पूर्वा भाद्रपदा", "उत्तरा भाद्रपदा", "रेवती"]
+    nakshatra_num = int(nirayana_moon / 13.333333)
+    nakshatra_name = nakshatra_names[nakshatra_num]
     
-    return f"{paksha} {name}", is_chaturthi, is_ekadashi
+    # ३. योग (Yoga) - सूर्य आणि चंद्राच्या अंशांची बेरीज
+    yoga_names = ["विष्कंभ", "प्रीती", "आयुष्मान", "सौभाग्य", "शोभन", "अतिगंड", "सुकर्मा", "धृती", "शूल", "गंड", "वृद्धी", "ध्रुव", "व्याघात", "हर्षण", "वज्र", "सिद्धी", "व्यतीपात", "वरीयान", "परिघ", "शिव", "सिद्ध", "साध्य", "शुभ", "शुक्ल", "ब्रह्म", "ऐंद्र", "वैधृती"]
+    yoga_num = int(((nirayana_sun + nirayana_moon) % 360) / 13.333333)
+    yoga_name = yoga_names[yoga_num]
+    
+    # ४. करण (Karana) - तिथीचा अर्धा भाग (६ अंश)
+    karana_names = ["बव", "बालव", "कौलव", "तैतिल", "गर", "वणिज", "विष्टी (भद्रा)", "शकुनी", "चतुष्पाद", "नाग", "किंस्तुघ्न"]
+    karana_num = int(tithi_diff / 6)
+    # करणची सायकल गुंतागुंतीची असते, येथे सोप्या पद्धतीचा वापर केला आहे
+    karana_index = (karana_num - 1) % 7 if karana_num != 0 else 10
+    karana_name = karana_names[karana_index]
+    
+    # ५. वार (Vaar)
+    vaar_names = ["सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"]
+    vaar_name = vaar_names[datetime.now().weekday()]
+    
+    is_chaturthi = tithi_num in [4, 19]
+    is_ekadashi = tithi_num in [11, 26]
+    
+    return {
+        "tithi": tithi_name,
+        "nakshatra": nakshatra_name,
+        "yoga": yoga_name,
+        "karana": karana_name,
+        "vaar": vaar_name,
+        "is_chaturthi": is_chaturthi,
+        "is_ekadashi": is_ekadashi
+    }
 
 # ---------------------------------------------------------
 # 🔐 १. Solarman (Sofar) API सुरक्षित टोकन मिळवणे
@@ -151,14 +177,15 @@ css = """
 }
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
+.panchang-card { background-color: #fff9c4; border-radius: 8px; padding: 12px; border: 1px solid #fbc02d; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .stButton button { font-weight: bold !important; border-radius: 6px !important; border: 2px solid #555 !important; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# 🌟 'Top Banner' आणि 'Tithi Banner' साठी जागा
+# 🌟 'Top Banner' आणि 'Panchang Banner' साठी जागा
 top_banner = st.empty()
-tithi_banner = st.empty()
+panchang_banner = st.empty()
 
 # ---------------------------------------------------------
 # ४. स्टेट्स (Session State)
@@ -328,7 +355,7 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा
+    # ☀️ सोलर ऊर्जा (Strictly Live API Data)
     with st.container(border=True):
         if not st.session_state.show_solar_report:
             current_power = st.session_state.real_solar_power
@@ -480,9 +507,9 @@ with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Cam
 with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 📢 ११. सायरन आणि 🕉️ तिथी रिमायंडर
+# 📢 ११. सायरन आणि 🕉️ संपूर्ण पंचांग रिमायंडर
 # ---------------------------------------------------------
-tithi_name, is_chaturthi, is_ekadashi = get_today_tithi()
+panchang_data = get_today_panchang()
 
 if trigger_siren:
     top_banner.markdown("""
@@ -490,7 +517,7 @@ if trigger_siren:
         <h1 style='color: white; margin: 0; font-size: 36px; font-weight: 900; text-shadow: 2px 2px 5px black;'>🚨 सावधान! घरात घुसखोर आढळला! 🚨</h1>
     </div>
     """, unsafe_allow_html=True)
-    tithi_banner.empty()
+    panchang_banner.empty()
     st.markdown("""<audio autoplay loop><source src="https://upload.wikimedia.org/wikipedia/commons/4/40/Siren_Noise.ogg" type="audio/ogg"><source src="https://actions.google.com/sounds/v1/alarms/burglar_alarm.ogg" type="audio/ogg"></audio>""", unsafe_allow_html=True)
 else:
     top_banner.markdown("""
@@ -500,28 +527,39 @@ else:
     </div>
     """, unsafe_allow_html=True)
     
-    # 🕉️ तिथी रिमायंडर दाखवणे
-    with tithi_banner.container():
-        if is_chaturthi:
-            tc1, tc2 = st.columns([1, 15])
-            with tc1:
-                try:
-                    st.image("ganpati.png", use_container_width=True)
-                except:
-                    st.markdown("<h1 style='margin:0;'>🐘</h1>", unsafe_allow_html=True)
-            with tc2:
-                st.success(f"**शुभ सकाळ!** आज **{tithi_name}** आहे. || श्री गणेशाय नमः ||")
-        elif is_ekadashi:
-            tc1, tc2 = st.columns([1, 15])
-            with tc1:
-                try:
-                    st.image("vitthal.png", use_container_width=True)
-                except:
-                    st.markdown("<h1 style='margin:0;'>🚩</h1>", unsafe_allow_html=True)
-            with tc2:
-                st.info(f"**शुभ सकाळ!** आज **{tithi_name}** आहे. || राम कृष्ण हरी ||")
-        else:
-            st.markdown(f"<div style='text-align: center; color: #555; font-size: 14px; margin-bottom: 15px;'>आजची तिथी: <b>{tithi_name}</b></div>", unsafe_allow_html=True)
+    # 🕉️ सुंदर पंचांग कार्ड
+    with panchang_banner.container():
+        st.markdown("<div class='panchang-card'>", unsafe_allow_html=True)
+        
+        # सण असल्यास फोटो आणि मेसेज
+        if panchang_data["is_chaturthi"]:
+            c1, c2 = st.columns([1, 8])
+            with c1:
+                try: st.image("ganpati.png", use_container_width=True)
+                except: st.markdown("<h1 style='margin:0;'>🐘</h1>", unsafe_allow_html=True)
+            with c2: st.error(f"**शुभ सकाळ!** आज **{panchang_data['tithi']}** आहे. || श्री गणेशाय नमः ||")
+            st.markdown("<hr style='margin: 5px 0; border-color: #fbc02d;'>", unsafe_allow_html=True)
+            
+        elif panchang_data["is_ekadashi"]:
+            c1, c2 = st.columns([1, 8])
+            with c1:
+                try: st.image("vitthal.png", use_container_width=True)
+                except: st.markdown("<h1 style='margin:0;'>🚩</h1>", unsafe_allow_html=True)
+            with c2: st.info(f"**शुभ सकाळ!** आज **{panchang_data['tithi']}** आहे. || राम कृष्ण हरी ||")
+            st.markdown("<hr style='margin: 5px 0; border-color: #fbc02d;'>", unsafe_allow_html=True)
+            
+        # पंचांग माहिती (पाच अंगे)
+        st.markdown(f"""
+        <div style='text-align: center; margin-bottom: 5px;'><h5 style='color: #d35400; margin: 0;'>🕉️ आजचे पंचांग</h5></div>
+        <div style='display: flex; justify-content: space-around; flex-wrap: wrap; font-size: 14px; color: #34495e; font-weight: bold;'>
+            <div>📅 वार: <span style='color: #e67e22;'>{panchang_data['vaar']}</span></div>
+            <div>🌙 तिथी: <span style='color: #e67e22;'>{panchang_data['tithi']}</span></div>
+            <div>✨ नक्षत्र: <span style='color: #e67e22;'>{panchang_data['nakshatra']}</span></div>
+            <div>🧘 योग: <span style='color: #e67e22;'>{panchang_data['yoga']}</span></div>
+            <div>🚩 करण: <span style='color: #e67e22;'>{panchang_data['karana']}</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
