@@ -4,8 +4,54 @@ import streamlit.components.v1 as components
 import time
 import hashlib
 import requests
+import ephem
+import math
+from datetime import datetime
 
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
+
+# ---------------------------------------------------------
+# 🕉️ खगोलीय गणितानुसार आजची तिथी काढणे (Washim Location)
+# ---------------------------------------------------------
+def get_today_tithi():
+    observer = ephem.Observer()
+    observer.lat = '20.1059' # Washim Latitude
+    observer.lon = '77.1358' # Washim Longitude
+    observer.elevation = 414 # Elevation in meters
+    
+    now_utc = datetime.utcnow()
+    observer.date = now_utc
+    
+    try:
+        sunrise = observer.previous_rising(ephem.Sun())
+    except:
+        sunrise = now_utc
+        
+    sun = ephem.Sun(sunrise)
+    moon = ephem.Moon(sunrise)
+    
+    sun_lon = math.degrees(ephem.Ecliptic(sun).lon)
+    moon_lon = math.degrees(ephem.Ecliptic(moon).lon)
+    
+    diff = (moon_lon - sun_lon) % 360
+    tithi_number = int(diff / 12) + 1
+    
+    tithi_names = [
+        "", "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी",
+        "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी",
+        "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "पौर्णिमा",
+        "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी",
+        "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी",
+        "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "अमावस्या"
+    ]
+    
+    name = tithi_names[tithi_number]
+    paksha = "शुक्ल पक्ष" if tithi_number <= 15 else "कृष्ण पक्ष"
+    
+    is_chaturthi = tithi_number in [4, 19]
+    is_ekadashi = tithi_number in [11, 26]
+    
+    return f"{paksha} {name}", is_chaturthi, is_ekadashi
 
 # ---------------------------------------------------------
 # 🔐 १. Solarman (Sofar) API सुरक्षित टोकन मिळवणे
@@ -51,7 +97,6 @@ def fetch_live_solar_data():
         app_id = st.secrets["sofar"]["app_id"]
         headers = {"Authorization": f"bearer {token}"}
         
-        # स्टेप १: स्टेशन ID आणि "आजची वीज" शोधणे
         url_list = f"https://globalapi.solarmanpv.com/station/v1.0/list?appId={app_id}&language=en"
         res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10}, timeout=10)
         station_data = res_list.json()
@@ -74,7 +119,6 @@ def fetch_live_solar_data():
             station_info.get("dailyGeneration", 0.0)))))
         )
         
-        # स्टेप २: लाईव्ह डेटा आणणे
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
         res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
         live_data = res_realtime.json()
@@ -106,14 +150,15 @@ css = """
     100% { background-color: #ffebee; border: 4px solid #d32f2f; } 
 }
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
-.normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
+.normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 .stButton button { font-weight: bold !important; border-radius: 6px !important; border: 2px solid #555 !important; }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
 
-# 🌟 'Top Banner' साठी जागा
+# 🌟 'Top Banner' आणि 'Tithi Banner' साठी जागा
 top_banner = st.empty()
+tithi_banner = st.empty()
 
 # ---------------------------------------------------------
 # ४. स्टेट्स (Session State)
@@ -283,10 +328,9 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा (Strictly Live API Data)
+    # ☀️ सोलर ऊर्जा
     with st.container(border=True):
         if not st.session_state.show_solar_report:
-            # --- मुख्य डॅशबोर्ड (Main View) ---
             current_power = st.session_state.real_solar_power
             daily_kwh = st.session_state.real_solar_daily
             is_generating = current_power > 0
@@ -330,25 +374,17 @@ with col_right:
                 st.rerun()
 
         else:
-            # --- नवीन रिपोर्ट विभाग (Report View) ---
             st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
-            
             if st.button("⬅️ मुख्य डॅशबोर्डवर परत जा", use_container_width=True):
                 st.session_state.show_solar_report = False
                 st.rerun()
 
-            # १. ग्राफिक्स टॅब्स (Dummy Graphs Removed - Only Empty Structure)
             tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
-            with tab_day:
-                st.line_chart([0]*10, height=150) 
-            with tab_month:
-                st.bar_chart([0]*12, height=150)
-            with tab_year:
-                st.bar_chart([0]*5, height=150)
-            with tab_total:
-                st.line_chart([0]*10, height=150)
+            with tab_day: st.line_chart([0]*10, height=150) 
+            with tab_month: st.bar_chart([0]*12, height=150)
+            with tab_year: st.bar_chart([0]*5, height=150)
+            with tab_total: st.line_chart([0]*10, height=150)
 
-            # २. Daily Production (Strictly API Data)
             daily_production_kwh = st.session_state.real_solar_daily
             if daily_production_kwh < 1.0:
                 report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
@@ -357,7 +393,6 @@ with col_right:
 
             st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
 
-            # ३. Operation Statistics (Strictly API Data)
             st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
             
             total_kwh = st.session_state.real_solar_total
@@ -365,7 +400,7 @@ with col_right:
             
             co2_tons = 0.000793 * total_kwh
             trees_planted = int((total_kwh * 0.997) / 18.3)
-            running_days = 0 if not st.session_state.is_solar_live else 618 # Live झाल्यावरच दाखवेल
+            running_days = 0 if not st.session_state.is_solar_live else 618 
             profit_inr = int(total_kwh * 7.5) 
 
             card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
@@ -445,14 +480,17 @@ with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Cam
 with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 📢 ११. बोलणारी 'मराठी व्हाईस' आणि सायरन सिस्टीम 
+# 📢 ११. सायरन आणि 🕉️ तिथी रिमायंडर
 # ---------------------------------------------------------
+tithi_name, is_chaturthi, is_ekadashi = get_today_tithi()
+
 if trigger_siren:
     top_banner.markdown("""
     <div class='flashing-alert'>
         <h1 style='color: white; margin: 0; font-size: 36px; font-weight: 900; text-shadow: 2px 2px 5px black;'>🚨 सावधान! घरात घुसखोर आढळला! 🚨</h1>
     </div>
     """, unsafe_allow_html=True)
+    tithi_banner.empty()
     st.markdown("""<audio autoplay loop><source src="https://upload.wikimedia.org/wikipedia/commons/4/40/Siren_Noise.ogg" type="audio/ogg"><source src="https://actions.google.com/sounds/v1/alarms/burglar_alarm.ogg" type="audio/ogg"></audio>""", unsafe_allow_html=True)
 else:
     top_banner.markdown("""
@@ -461,6 +499,29 @@ else:
         <h4 style='color: #81d4fa; margin: 3px 0 0 0; font-weight: 500;'>पाणी, ऊर्जा व सुरक्षा व्यवस्थापन प्रणाली</h4>
     </div>
     """, unsafe_allow_html=True)
+    
+    # 🕉️ तिथी रिमायंडर दाखवणे
+    with tithi_banner.container():
+        if is_chaturthi:
+            tc1, tc2 = st.columns([1, 15])
+            with tc1:
+                try:
+                    st.image("ganpati.png", use_container_width=True)
+                except:
+                    st.markdown("<h1 style='margin:0;'>🐘</h1>", unsafe_allow_html=True)
+            with tc2:
+                st.success(f"**शुभ सकाळ!** आज **{tithi_name}** आहे. || श्री गणेशाय नमः ||")
+        elif is_ekadashi:
+            tc1, tc2 = st.columns([1, 15])
+            with tc1:
+                try:
+                    st.image("vitthal.png", use_container_width=True)
+                except:
+                    st.markdown("<h1 style='margin:0;'>🚩</h1>", unsafe_allow_html=True)
+            with tc2:
+                st.info(f"**शुभ सकाळ!** आज **{tithi_name}** आहे. || राम कृष्ण हरी ||")
+        else:
+            st.markdown(f"<div style='text-align: center; color: #555; font-size: 14px; margin-bottom: 15px;'>आजची तिथी: <b>{tithi_name}</b></div>", unsafe_allow_html=True)
 
 if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
