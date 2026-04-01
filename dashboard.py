@@ -59,23 +59,21 @@ def get_panchang_details(selected_date):
     cur_yoga = calc_yoga(sunrise)
     cur_kar = calc_karana(sunrise)
     
-    # ⏳ 'सुरुवात' शोधण्याचे फंक्शन (मागे जाऊन शोधते)
     def find_start(t_ref, cur_val, func):
         t = t_ref
-        for _ in range(120): # ६० तासांपर्यंत मागे जाणे
+        for _ in range(120):
             t -= ephem.hour / 2
             if func(t) != cur_val:
-                for _ in range(35): # मिनिटांनी अचूक वेळ फिक्स करणे
+                for _ in range(35):
                     t += ephem.minute
                     if func(t) == cur_val:
                         dt = ephem.Date(t).datetime() + timedelta(hours=5, minutes=30)
                         return dt.strftime("%d %b, %I:%M %p")
         return "-"
 
-    # ⏳ 'समाप्ती' शोधण्याचे फंक्शन (पुढे जाऊन शोधते)
     def find_end(t_ref, cur_val, func):
         t = t_ref
-        for _ in range(120): # ६० तासांपर्यंत पुढे जाणे
+        for _ in range(120):
             t += ephem.hour / 2
             if func(t) != cur_val:
                 for _ in range(35):
@@ -225,7 +223,7 @@ panchang_banner = st.empty()
 # ---------------------------------------------------------
 # ४. स्टेट्स (Session State)
 # ---------------------------------------------------------
-for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug', 'is_solar_live', 'show_solar_report']:
+for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug', 'is_solar_live']:
     if key not in st.session_state:
         st.session_state[key] = False
 
@@ -272,16 +270,6 @@ with st.sidebar:
                     st.warning("🌙 इन्व्हर्टर ऑफलाईन आहे (डेटा रिफ्रेश झाला).")
                 else:
                     st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔍 स्टेशनचा कच्चा डेटा पहा (Debug)"):
-        with st.spinner("कच्चा डेटा आणत आहे..."):
-            fetch_live_solar_data()
-            if st.session_state.debug_station_data:
-                st.success("डेटा मिळाला! हा खालील मजकूर कॉपी करून पाठवा:")
-                st.json(st.session_state.debug_station_data)
-            else:
-                st.error("डेटा मिळाला नाही.")
 
 # ---------------------------------------------------------
 # ६. टाक्यांचे डिझाईन 
@@ -390,54 +378,50 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा
+    # ☀️ सोलर ऊर्जा (Strictly Live API Data + Popover Report)
     with st.container(border=True):
-        if not st.session_state.show_solar_report:
-            current_power = st.session_state.real_solar_power
-            daily_kwh = st.session_state.real_solar_daily
-            is_generating = current_power > 0
-            is_offline = "OFFLINE" in st.session_state.inverter_status
-            
-            display_power = f"{current_power:.2f} kW"
-            if daily_kwh < 1.0: display_daily = f"{int(daily_kwh * 1000)} Wh"
-            else: display_daily = f"{daily_kwh:.2f} kWh"
-
-            if not st.session_state.is_solar_live:
-                solar_glow = "border: 1px solid #ccc;"
-                line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-                status_color = "#555"
-                status_text = "🔄 कृपया 'लाईव्ह डेटा रिफ्रेश करा' बटण दाबा"
-                data_source_badge = "<span style='background-color: #9e9e9e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>⏳ PENDING</span>"
-            elif is_offline:
-                solar_glow = "border: 1px solid #95a5a6;"
-                line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-                status_color = "#7f8c8d"
-                status_text = "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (ऑफलाइन/रात्र)"
-                data_source_badge = "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
-            else:
-                solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
-                line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-                status_color = "#2e7d32" if is_generating else "#c62828"
-                status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती सध्या 0 W आहे"
-                data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
-
-            solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><line x1="20" y1="2" x2="20" y2="7" stroke="#FFA500" stroke-width="2"/><line x1="20" y1="38" x2="20" y2="33" stroke="#FFA500" stroke-width="2"/><line x1="2" y1="20" x2="7" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="38" y1="20" x2="33" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="7" x2="11" y2="11" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="33" x2="29" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="33" x2="11" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="7" x2="29" y2="11" stroke="#FFA500" stroke-width="2"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/><line x1="40" y1="60" x2="77" y2="55" stroke="#ddd" stroke-width="1.5"/><line x1="53" y1="35" x2="42" y2="82" stroke="#ddd" stroke-width="1.5"/><line x1="68" y1="32" x2="57" y2="80" stroke="#ddd" stroke-width="1.5"/></svg>"""
-            grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
-
-            st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; position: relative; {solar_glow}'><div style='position: absolute; top: 5px; right: 5px;'>{data_source_badge}</div><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
-            st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
-            st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
-            
-            st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
-            if st.button("📊 रिपोर्ट पहा", use_container_width=True):
-                st.session_state.show_solar_report = True
-                st.rerun()
-
+        current_power = st.session_state.real_solar_power
+        daily_kwh = st.session_state.real_solar_daily
+        is_generating = current_power > 0
+        is_offline = "OFFLINE" in st.session_state.inverter_status
+        
+        display_power = f"{current_power:.2f} kW"
+        if daily_kwh < 1.0:
+            display_daily = f"{int(daily_kwh * 1000)} Wh"
         else:
+            display_daily = f"{daily_kwh:.2f} kWh"
+
+        if not st.session_state.is_solar_live:
+            solar_glow = "border: 1px solid #ccc;"
+            line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+            status_color = "#555"
+            status_text = "🔄 कृपया 'लाईव्ह डेटा रिफ्रेश करा' बटण दाबा"
+            data_source_badge = "<span style='background-color: #9e9e9e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>⏳ PENDING</span>"
+        elif is_offline:
+            solar_glow = "border: 1px solid #95a5a6;"
+            line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+            status_color = "#7f8c8d"
+            status_text = "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (ऑफलाइन/रात्र)"
+            data_source_badge = "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
+        else:
+            solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
+            line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+            status_color = "#2e7d32" if is_generating else "#c62828"
+            status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती सध्या 0 W आहे"
+            data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
+
+        solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><line x1="20" y1="2" x2="20" y2="7" stroke="#FFA500" stroke-width="2"/><line x1="20" y1="38" x2="20" y2="33" stroke="#FFA500" stroke-width="2"/><line x1="2" y1="20" x2="7" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="38" y1="20" x2="33" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="7" x2="11" y2="11" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="33" x2="29" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="33" x2="11" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="7" x2="29" y2="11" stroke="#FFA500" stroke-width="2"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/><line x1="40" y1="60" x2="77" y2="55" stroke="#ddd" stroke-width="1.5"/><line x1="53" y1="35" x2="42" y2="82" stroke="#ddd" stroke-width="1.5"/><line x1="68" y1="32" x2="57" y2="80" stroke="#ddd" stroke-width="1.5"/></svg>"""
+        grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
+
+        st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; position: relative; {solar_glow}'><div style='position: absolute; top: 5px; right: 5px;'>{data_source_badge}</div><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
+        
+        st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+        
+        # 📊 सोलर रिपोर्ट पॉपअप (Popover)
+        with st.popover("📊 विस्तृत रिपोर्ट आणि आकडेवारी पहा", use_container_width=True):
             st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
-            if st.button("⬅️ मुख्य डॅशबोर्डवर परत जा", use_container_width=True):
-                st.session_state.show_solar_report = False
-                st.rerun()
 
             tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
             with tab_day: st.line_chart([0]*10, height=150) 
@@ -446,8 +430,10 @@ with col_right:
             with tab_total: st.line_chart([0]*10, height=150)
 
             daily_production_kwh = st.session_state.real_solar_daily
-            if daily_production_kwh < 1.0: report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
-            else: report_daily_display = f"{daily_production_kwh:.2f} kWh"
+            if daily_production_kwh < 1.0:
+                report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
+            else:
+                report_daily_display = f"{daily_production_kwh:.2f} kWh"
 
             st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
 
@@ -455,7 +441,6 @@ with col_right:
             
             total_kwh = st.session_state.real_solar_total
             total_mwh = total_kwh / 1000.0
-            
             co2_tons = 0.000793 * total_kwh
             trees_planted = int((total_kwh * 0.997) / 18.3)
             running_days = 0 if not st.session_state.is_solar_live else 618 
@@ -556,13 +541,11 @@ else:
     </div>
     """, unsafe_allow_html=True)
     
-    # 🕉️ आजची तारीख आणि बेसिक पंचांग
     today_dt = datetime.now().date()
     vaar_names = ["सोमवार", "मंगळवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"]
     today_vaar = vaar_names[today_dt.weekday()]
     tdy_panchang = get_panchang_details(today_dt)
     
-    # सण असेल तर छोटा फोटो जोडणे
     festival_html = ""
     if tdy_panchang["is_chaturthi"]:
         b64_img = get_base64_image("ganpati.png")
@@ -573,7 +556,6 @@ else:
         if b64_img: festival_html = f"<img src='data:image/png;base64,{b64_img}' width='35' style='vertical-align:middle; border-radius:50%; margin-right:8px;'> <span style='color: #1976D2; font-weight: bold;'>|| राम कृष्ण हरी ||</span>"
         else: festival_html = "<span style='color: #1976D2; font-weight: bold;'>🚩 || राम कृष्ण हरी ||</span>"
 
-    # ✨ जागा वाचवणारी 'कॉम्पेक्ट पट्टी' आणि 'पॉपअप बटण'
     with panchang_banner.container():
         p_col1, p_col2 = st.columns([5, 1])
         with p_col1:
@@ -587,11 +569,9 @@ else:
             """, unsafe_allow_html=True)
         
         with p_col2:
-            # 📅 'पॉपअप बटण' (Popover)
             with st.popover("📅 पंचांग", help="विस्तृत पंचांग आणि वेळा पहा"):
                 st.markdown("<h5 style='text-align: center; color: #e67e22;'>🕉️ विस्तृत पंचांग</h5>", unsafe_allow_html=True)
                 
-                # तारीख निवडण्याची सुविधा
                 selected_date = st.date_input("तारीख निवडा:", today_dt)
                 
                 if selected_date == today_dt: sel_panchang = tdy_panchang
@@ -599,7 +579,6 @@ else:
                 
                 sel_vaar = vaar_names[selected_date.weekday()]
                 
-                # पंचांग टेबल (Start & End Time) - सुधारित "सुरुवात / समाप्ती (दिनांक व वेळ)" डिझाईन
                 st.markdown(f"<div style='text-align:center; font-size:14px; font-weight:bold; margin-bottom:10px;'>{selected_date.strftime('%d-%m-%Y')} ({sel_vaar})</div>", unsafe_allow_html=True)
                 st.markdown(f"""
                 <table style="width:100%; border-collapse: collapse; font-size: 13px;">
