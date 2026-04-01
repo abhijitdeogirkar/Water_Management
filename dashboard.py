@@ -51,7 +51,7 @@ def fetch_live_solar_data():
         app_id = st.secrets["sofar"]["app_id"]
         headers = {"Authorization": f"bearer {token}"}
         
-        # स्टेप १: स्टेशन ID शोधणे
+        # स्टेप १: स्टेशन ID आणि "आजची वीज" शोधणे
         url_list = f"https://globalapi.solarmanpv.com/station/v1.0/list?appId={app_id}&language=en"
         res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10}, timeout=10)
         station_data = res_list.json()
@@ -60,14 +60,20 @@ def fetch_live_solar_data():
             st.error("⚠️ Solarman खात्यावर कोणताही प्लांट जोडलेला आढळला नाही.")
             return None
             
-        station_id = station_data["stationList"][0]["id"]
+        station_info = station_data["stationList"][0]
+        station_id = station_info["id"]
         
-        # स्टेप २: लाईव्ह डेटा आणणे
+        # ✨ मुख्य बदल: 'आजची वीज' (Daily Generation) या लिस्ट मधूनच मिळवणे
+        daily_energy = float(station_info.get("generationToday", station_info.get("dailyEnergy", 0.0)))
+        
+        # स्टेप २: लाईव्ह डेटा (Current Power & Total Power) आणणे
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
         res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
         live_data = res_realtime.json()
         
         if live_data.get("success"):
+            # आपण मिळवलेली 'आजची वीज' या डेटामध्ये मुद्दाम जोडत आहोत
+            live_data["custom_daily_energy"] = daily_energy 
             return live_data
         else:
             st.error("⚠️ लाईव्ह डेटा मिळवण्यात अडचण आली.")
@@ -139,15 +145,15 @@ with st.sidebar:
                 
                 total_energy = float(data.get("generationTotal", 0))
                 
-                # 'आजची वीज' शोधण्याचा प्रयत्न, न मिळाल्यास सुरक्षित 0.0 ठेवणे
-                daily_energy = float(data.get("dailyGeneration", data.get("dailyEnergy", data.get("todayGeneration", 0.0))))
+                # ✨ मुख्य बदल: आपण स्टेशन लिस्ट मधून काढलेली 'आजची वीज' इथे वापरत आहोत
+                daily_energy = float(data.get("custom_daily_energy", 0.0))
                 
-                # Session State मध्ये ठामपणे सेव्ह करणे
+                # Session State मध्ये सेव्ह करणे
                 st.session_state.real_solar_power = power_kw
                 st.session_state.real_solar_total = total_energy
                 st.session_state.real_solar_daily = daily_energy
                 st.session_state.is_solar_live = True
-                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला! आता रिपोर्ट तपासा.")
+                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला! आता आजची वीज तपासा.")
 
 # ---------------------------------------------------------
 # ६. टाक्यांचे डिझाईन 
@@ -305,7 +311,7 @@ with col_right:
                 st.session_state.show_solar_report = False
                 st.rerun()
 
-            # १. ग्राफिक्स टॅब्स (Graphic Statistics - Placeholder for UI)
+            # १. ग्राफिक्स टॅब्स
             tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
             with tab_day:
                 st.markdown("<div style='font-size: 12px; color: #666; text-align: right;'>01/04/2026</div>", unsafe_allow_html=True)
@@ -329,14 +335,13 @@ with col_right:
             # ३. Operation Statistics (LIVE Exact Formula Logic)
             st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
             
-            # API चा लाईव्ह डेटाच वापरणार (नसल्यास ६११४.५ चा फॉलबॅक)
             total_kwh = st.session_state.real_solar_total if st.session_state.is_solar_live else 6114.5
             total_mwh = total_kwh / 1000.0
             
             # सूत्रांनुसार लाईव्ह गणित (Formulas)
             co2_tons = 0.000793 * total_kwh
             trees_planted = int((total_kwh * 0.997) / 18.3)
-            running_days = 618 # हे स्थिर ठेवले आहे, कारण यासाठी वेगळा API कॉल लागतो.
+            running_days = 618 # हे स्थिर ठेवले आहे.
             profit_inr = int(total_kwh * 7.5) # ₹7.5 प्रति युनिट अंदाजित नफा
 
             card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
