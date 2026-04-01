@@ -378,7 +378,7 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा (Strictly Live API Data + Popover Report)
+    # ☀️ सोलर ऊर्जा (Strictly Live API Data + Compact Report Popover)
     with st.container(border=True):
         current_power = st.session_state.real_solar_power
         daily_kwh = st.session_state.real_solar_daily
@@ -386,10 +386,8 @@ with col_right:
         is_offline = "OFFLINE" in st.session_state.inverter_status
         
         display_power = f"{current_power:.2f} kW"
-        if daily_kwh < 1.0:
-            display_daily = f"{int(daily_kwh * 1000)} Wh"
-        else:
-            display_daily = f"{daily_kwh:.2f} kWh"
+        if daily_kwh < 1.0: display_daily = f"{int(daily_kwh * 1000)} Wh"
+        else: display_daily = f"{daily_kwh:.2f} kWh"
 
         if not st.session_state.is_solar_live:
             solar_glow = "border: 1px solid #ccc;"
@@ -401,7 +399,7 @@ with col_right:
             solar_glow = "border: 1px solid #95a5a6;"
             line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
             status_color = "#7f8c8d"
-            status_text = "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (ऑफलाइन/रात्र)"
+            status_text = "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (रात्र)"
             data_source_badge = "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
         else:
             solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
@@ -415,48 +413,53 @@ with col_right:
 
         st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; position: relative; {solar_glow}'><div style='position: absolute; top: 5px; right: 5px;'>{data_source_badge}</div><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
         
-        st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+        # ऍनिमेटेड ग्राफिक्स भाग 
+        st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div></div>", unsafe_allow_html=True)
         
-        # 📊 सोलर रिपोर्ट पॉपअप (Popover)
-        with st.popover("📊 विस्तृत रिपोर्ट आणि आकडेवारी पहा", use_container_width=True):
-            st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
+        # ✨ मुख्य बदल: सोलर कार्डच्या आतच स्टेटस आणि रिपोर्ट बटण (जागा वाचवण्यासाठी)
+        st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
+        sc1, sc2 = st.columns([3, 2])
+        with sc1:
+            st.markdown(f"<div style='margin-top: 5px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div>", unsafe_allow_html=True)
+        
+        with sc2:
+            report_pop = st.popover("📊 सोलर रिपोर्ट", use_container_width=True)
+            with report_pop:
+                st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
 
-            tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
-            with tab_day: st.line_chart([0]*10, height=150) 
-            with tab_month: st.bar_chart([0]*12, height=150)
-            with tab_year: st.bar_chart([0]*5, height=150)
-            with tab_total: st.line_chart([0]*10, height=150)
+                tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
+                with tab_day: st.line_chart([0]*10, height=150) 
+                with tab_month: st.bar_chart([0]*12, height=150)
+                with tab_year: st.bar_chart([0]*5, height=150)
+                with tab_total: st.line_chart([0]*10, height=150)
 
-            daily_production_kwh = st.session_state.real_solar_daily
-            if daily_production_kwh < 1.0:
-                report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
-            else:
-                report_daily_display = f"{daily_production_kwh:.2f} kWh"
+                daily_production_kwh = st.session_state.real_solar_daily
+                if daily_production_kwh < 1.0: report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
+                else: report_daily_display = f"{daily_production_kwh:.2f} kWh"
 
-            st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
 
-            st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
-            
-            total_kwh = st.session_state.real_solar_total
-            total_mwh = total_kwh / 1000.0
-            co2_tons = 0.000793 * total_kwh
-            trees_planted = int((total_kwh * 0.997) / 18.3)
-            running_days = 0 if not st.session_state.is_solar_live else 618 
-            profit_inr = int(total_kwh * 7.5) 
+                st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
+                
+                total_kwh = st.session_state.real_solar_total
+                total_mwh = total_kwh / 1000.0
+                co2_tons = 0.000793 * total_kwh
+                trees_planted = int((total_kwh * 0.997) / 18.3)
+                running_days = 0 if not st.session_state.is_solar_live else 618 
+                profit_inr = int(total_kwh * 7.5) 
 
-            card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
-            
-            col_a, col_b = st.columns(2)
-            with col_a:
-                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🕐 Running Days</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{running_days}<span style='font-size: 12px; font-weight: normal;'>day</span></div></div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>💰 Profit Estimate</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>₹ {profit_inr:,} <span style='font-size: 12px; font-weight: normal;'>INR</span></div></div>", unsafe_allow_html=True)
-            with col_b:
-                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>⚡ Total Production</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{total_mwh:.2f}<span style='font-size: 12px; font-weight: normal;'>MWh</span></div></div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>☁️ CO2 Reduction</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{co2_tons:.2f}<span style='font-size: 12px; font-weight: normal;'>t</span></div></div>", unsafe_allow_html=True)
-            
-            st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🍃 Equivalent tree planting</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{trees_planted}<span style='font-size: 12px; font-weight: normal;'>trees</span></div></div>", unsafe_allow_html=True)
+                card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🕐 Running Days</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{running_days}<span style='font-size: 12px; font-weight: normal;'>day</span></div></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>💰 Profit Estimate</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>₹ {profit_inr:,} <span style='font-size: 12px; font-weight: normal;'>INR</span></div></div>", unsafe_allow_html=True)
+                with col_b:
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>⚡ Total Production</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{total_mwh:.2f}<span style='font-size: 12px; font-weight: normal;'>MWh</span></div></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>☁️ CO2 Reduction</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{co2_tons:.2f}<span style='font-size: 12px; font-weight: normal;'>t</span></div></div>", unsafe_allow_html=True)
+                
+                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🍃 Equivalent tree planting</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{trees_planted}<span style='font-size: 12px; font-weight: normal;'>trees</span></div></div>", unsafe_allow_html=True)
 
     # ⚡ कंट्रोल पॅनल
     with st.container(border=True):
