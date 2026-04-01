@@ -133,18 +133,21 @@ with st.sidebar:
         with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत आहे..."):
             data = fetch_live_solar_data()
             if data:
+                # Live API मधून डेटा मिळवणे
                 power_watts = float(data.get("generationPower", 0))
                 power_kw = power_watts / 1000.0 if power_watts > 10 else power_watts
                 
                 total_energy = float(data.get("generationTotal", 0))
-                # API कडून आजची वीज मिळवण्याचा प्रयत्न 
-                daily_energy = float(data.get("dailyGeneration", data.get("dailyEnergy", data.get("todayGeneration", 0.06))))
                 
+                # 'आजची वीज' शोधण्याचा प्रयत्न, न मिळाल्यास सुरक्षित 0.0 ठेवणे
+                daily_energy = float(data.get("dailyGeneration", data.get("dailyEnergy", data.get("todayGeneration", 0.0))))
+                
+                # Session State मध्ये ठामपणे सेव्ह करणे
                 st.session_state.real_solar_power = power_kw
                 st.session_state.real_solar_total = total_energy
                 st.session_state.real_solar_daily = daily_energy
                 st.session_state.is_solar_live = True
-                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
+                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला! आता रिपोर्ट तपासा.")
 
 # ---------------------------------------------------------
 # ६. टाक्यांचे डिझाईन 
@@ -286,7 +289,6 @@ with col_right:
             grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
 
             st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; position: relative; {solar_glow}'><div style='position: absolute; top: 5px; right: 5px;'>{data_source_badge}</div><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
-            # येथे "आजपर्यंत एकूण वीज" ऐवजी "आजची निर्मिती" जोडले आहे
             st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
             st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div><div style='text-align: center; margin-top: 12px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div></div>", unsafe_allow_html=True)
             
@@ -303,11 +305,11 @@ with col_right:
                 st.session_state.show_solar_report = False
                 st.rerun()
 
-            # १. ग्राफिक्स टॅब्स (Graphic Statistics)
+            # १. ग्राफिक्स टॅब्स (Graphic Statistics - Placeholder for UI)
             tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
             with tab_day:
                 st.markdown("<div style='font-size: 12px; color: #666; text-align: right;'>01/04/2026</div>", unsafe_allow_html=True)
-                st.line_chart([0, 0, 0, 5, 45, 95, 100, 90, 40, 0, 0], height=150) # Simulated curve
+                st.line_chart([0, 0, 0, 5, 45, 95, 100, 90, 40, 0, 0], height=150) 
             with tab_month:
                 st.bar_chart([120, 150, 200, 180, 210, 190, 220, 215, 190, 160, 140, 130], height=150)
             with tab_year:
@@ -315,7 +317,7 @@ with col_right:
             with tab_total:
                 st.line_chart([100, 500, 1200, 2500, 4000, 6114], height=150)
 
-            # २. Daily Production (W vs kW Logic)
+            # २. Daily Production (LIVE: W vs kW Logic)
             daily_production_kwh = st.session_state.real_solar_daily if st.session_state.is_solar_live else 0.06
             if daily_production_kwh < 1.0:
                 report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
@@ -324,23 +326,25 @@ with col_right:
 
             st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
 
-            # ३. Operation Statistics (Exact Formula Logic)
+            # ३. Operation Statistics (LIVE Exact Formula Logic)
             st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
             
+            # API चा लाईव्ह डेटाच वापरणार (नसल्यास ६११४.५ चा फॉलबॅक)
             total_kwh = st.session_state.real_solar_total if st.session_state.is_solar_live else 6114.5
             total_mwh = total_kwh / 1000.0
             
-            # सूत्रांनुसार गणित (Formulas)
+            # सूत्रांनुसार लाईव्ह गणित (Formulas)
             co2_tons = 0.000793 * total_kwh
             trees_planted = int((total_kwh * 0.997) / 18.3)
-            running_days = 618 # Placeholder for now
+            running_days = 618 # हे स्थिर ठेवले आहे, कारण यासाठी वेगळा API कॉल लागतो.
+            profit_inr = int(total_kwh * 7.5) # ₹7.5 प्रति युनिट अंदाजित नफा
 
             card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
             
             col_a, col_b = st.columns(2)
             with col_a:
                 st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🕐 Running Days</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{running_days}<span style='font-size: 12px; font-weight: normal;'>day</span></div></div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>💰 Profit Estimate</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>-- <span style='font-size: 12px; font-weight: normal;'>INR</span></div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>💰 Profit Estimate</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>₹ {profit_inr:,} <span style='font-size: 12px; font-weight: normal;'>INR</span></div></div>", unsafe_allow_html=True)
             with col_b:
                 st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>⚡ Total Production</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{total_mwh:.2f}<span style='font-size: 12px; font-weight: normal;'>MWh</span></div></div>", unsafe_allow_html=True)
                 st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>☁️ CO2 Reduction</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{co2_tons:.2f}<span style='font-size: 12px; font-weight: normal;'>t</span></div></div>", unsafe_allow_html=True)
