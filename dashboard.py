@@ -178,13 +178,46 @@ def fetch_live_solar_data():
             station_info.get("dailyGeneration", 0.0)))))
         )
         
+        # 1. रिअलटाईम (सध्याची) वीज
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
         res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
         live_data = res_realtime.json()
         
+        # 2. ऐतिहासिक ग्राफ डेटा मिळवणे (Day, Month, Year, Total)
+        history_data = {}
+        try:
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            hist_url = f"https://globalapi.solarmanpv.com/station/v1.0/history?appId={app_id}&language=en"
+            
+            r_day = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 1, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            r_month = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 2, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            r_year = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 3, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            r_total = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 4, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            
+            st.session_state.debug_station_data["history_sample"] = r_day # Debug साठी सेव्ह करणे
+            
+            def extract_vals(res):
+                if isinstance(res, dict):
+                    for k, v in res.items():
+                        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
+                            vals = []
+                            for i in v:
+                                val = i.get('value', i.get('generation', i.get('power', 0)))
+                                vals.append(float(val) if val is not None else 0.0)
+                            return vals
+                return []
+                
+            history_data['day'] = extract_vals(r_day)
+            history_data['month'] = extract_vals(r_month)
+            history_data['year'] = extract_vals(r_year)
+            history_data['total'] = extract_vals(r_total)
+        except Exception as e:
+            pass # जर हिस्ट्री फेल झाली तरी मुख्य डॅशबोर्ड सुरू राहील
+        
         if live_data.get("success"):
             live_data["custom_daily_energy"] = daily_energy 
             live_data["network_status"] = network_status 
+            live_data["history"] = history_data
             return live_data
         else:
             st.error("⚠️ लाईव्ह डेटा मिळवण्यात अडचण आली.")
@@ -234,6 +267,12 @@ if 'real_solar_daily' not in st.session_state: st.session_state.real_solar_daily
 if 'inverter_status' not in st.session_state: st.session_state.inverter_status = "PENDING"
 if 'debug_station_data' not in st.session_state: st.session_state.debug_station_data = {}
 
+# ग्राफ्स साठी नवीन सेशन स्टेट
+if 'chart_day' not in st.session_state: st.session_state.chart_day = [0]*10
+if 'chart_month' not in st.session_state: st.session_state.chart_month = [0]*12
+if 'chart_year' not in st.session_state: st.session_state.chart_year = [0]*5
+if 'chart_total' not in st.session_state: st.session_state.chart_total = [0]*10
+
 def set_pump_state(key, state):
     st.session_state[key] = state
 
@@ -250,7 +289,7 @@ with st.sidebar:
     st.markdown("#### 🔌 खऱ्या सोलरचे API कनेक्शन")
     
     if st.button("🔄 लाईव्ह डेटा रिफ्रेश करा", type="primary"):
-        with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत आहे..."):
+        with st.spinner("लाईव्ह आणि ऐतिहासिक डेटा आणत आहे..."):
             data = fetch_live_solar_data()
             if data:
                 power_watts = float(data.get("generationPower", 0))
@@ -264,6 +303,14 @@ with st.sidebar:
                 st.session_state.real_solar_total = total_energy
                 st.session_state.real_solar_daily = daily_energy
                 st.session_state.inverter_status = net_status
+                
+                # ऐतिहासिक ग्राफ डेटा सेव्ह करणे
+                hist = data.get("history", {})
+                if hist.get('day'): st.session_state.chart_day = hist['day']
+                if hist.get('month'): st.session_state.chart_month = hist['month']
+                if hist.get('year'): st.session_state.chart_year = hist['year']
+                if hist.get('total'): st.session_state.chart_total = hist['total']
+                
                 st.session_state.is_solar_live = True
                 
                 if "OFFLINE" in net_status:
@@ -414,10 +461,8 @@ with col_right:
         st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; position: relative; {solar_glow}'><div style='position: absolute; top: 5px; right: 5px;'>{data_source_badge}</div><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
         
-        # ऍनिमेटेड ग्राफिक्स भाग 
         st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div></div>", unsafe_allow_html=True)
         
-        # ✨ मुख्य बदल: सोलर कार्डच्या आतच स्टेटस आणि रिपोर्ट बटण (जागा वाचवण्यासाठी)
         st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
         sc1, sc2 = st.columns([3, 2])
         with sc1:
@@ -429,10 +474,10 @@ with col_right:
                 st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
 
                 tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
-                with tab_day: st.line_chart([0]*10, height=150) 
-                with tab_month: st.bar_chart([0]*12, height=150)
-                with tab_year: st.bar_chart([0]*5, height=150)
-                with tab_total: st.line_chart([0]*10, height=150)
+                with tab_day: st.line_chart(st.session_state.chart_day, height=150) 
+                with tab_month: st.bar_chart(st.session_state.chart_month, height=150)
+                with tab_year: st.bar_chart(st.session_state.chart_year, height=150)
+                with tab_total: st.line_chart(st.session_state.chart_total, height=150)
 
                 daily_production_kwh = st.session_state.real_solar_daily
                 if daily_production_kwh < 1.0: report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
