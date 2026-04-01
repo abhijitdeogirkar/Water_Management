@@ -63,8 +63,17 @@ def fetch_live_solar_data():
         station_info = station_data["stationList"][0]
         station_id = station_info["id"]
         
-        # ✨ मुख्य बदल: 'आजची वीज' (Daily Generation) या लिस्ट मधूनच मिळवणे
-        daily_energy = float(station_info.get("generationToday", station_info.get("dailyEnergy", 0.0)))
+        # 🛠️ DEBUG साठी स्टेशनचा पूर्ण डेटा सेव्ह करणे
+        st.session_state.debug_station_data = station_info
+        
+        # ✨ आजची वीज शोधण्यासाठी ५ वेगवेगळ्या नावांचे जाळे
+        daily_energy = float(
+            station_info.get("generationToday", 
+            station_info.get("dailyEnergy", 
+            station_info.get("todayGeneration", 
+            station_info.get("todayEnergy", 
+            station_info.get("dailyGeneration", 0.0)))))
+        )
         
         # स्टेप २: लाईव्ह डेटा (Current Power & Total Power) आणणे
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
@@ -118,6 +127,7 @@ if 'alarm_armed' not in st.session_state: st.session_state.alarm_armed = False
 if 'real_solar_power' not in st.session_state: st.session_state.real_solar_power = 0.0
 if 'real_solar_total' not in st.session_state: st.session_state.real_solar_total = 0.0
 if 'real_solar_daily' not in st.session_state: st.session_state.real_solar_daily = 0.0
+if 'debug_station_data' not in st.session_state: st.session_state.debug_station_data = {}
 
 def set_pump_state(key, state):
     st.session_state[key] = state
@@ -139,21 +149,27 @@ with st.sidebar:
         with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत आहे..."):
             data = fetch_live_solar_data()
             if data:
-                # Live API मधून डेटा मिळवणे
                 power_watts = float(data.get("generationPower", 0))
                 power_kw = power_watts / 1000.0 if power_watts > 10 else power_watts
                 
                 total_energy = float(data.get("generationTotal", 0))
-                
-                # ✨ मुख्य बदल: आपण स्टेशन लिस्ट मधून काढलेली 'आजची वीज' इथे वापरत आहोत
                 daily_energy = float(data.get("custom_daily_energy", 0.0))
                 
-                # Session State मध्ये सेव्ह करणे
                 st.session_state.real_solar_power = power_kw
                 st.session_state.real_solar_total = total_energy
                 st.session_state.real_solar_daily = daily_energy
                 st.session_state.is_solar_live = True
-                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला! आता आजची वीज तपासा.")
+                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔍 स्टेशनचा कच्चा डेटा पहा (Debug)"):
+        with st.spinner("कच्चा डेटा आणत आहे..."):
+            fetch_live_solar_data()
+            if st.session_state.debug_station_data:
+                st.success("डेटा मिळाला! हा खालील मजकूर कॉपी करून पाठवा:")
+                st.json(st.session_state.debug_station_data)
+            else:
+                st.error("डेटा मिळाला नाही.")
 
 # ---------------------------------------------------------
 # ६. टाक्यांचे डिझाईन 
@@ -442,7 +458,7 @@ if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
 alert_to_speak = ""
-if trigger_siren: alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
+if trigger_siren: alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली intrad."
 elif (valve_t1 or valve_t2) and not any_pump_on: alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
 elif tank1_pouring and tank2_pouring: alert_to_speak = "टाकी एक आणि टाकी दोन मध्ये पाणी भरत आहे."
 elif tank1_pouring: alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
