@@ -51,7 +51,6 @@ def fetch_live_solar_data():
         app_id = st.secrets["sofar"]["app_id"]
         headers = {"Authorization": f"bearer {token}"}
         
-        # स्टेप १: स्टेशन ID आणि "आजची वीज" शोधणे
         url_list = f"https://globalapi.solarmanpv.com/station/v1.0/list?appId={app_id}&language=en"
         res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10}, timeout=10)
         station_data = res_list.json()
@@ -63,10 +62,8 @@ def fetch_live_solar_data():
         station_info = station_data["stationList"][0]
         station_id = station_info["id"]
         
-        # 🛠️ DEBUG साठी स्टेशनचा पूर्ण डेटा सेव्ह करणे
-        st.session_state.debug_station_data = station_info
-        
-        # ✨ आजची वीज शोधण्यासाठी ५ वेगवेगळ्या नावांचे जाळे
+        # 💡 नवीन लॉजिक: नेटवर्क स्टेट्स आणि आजची वीज शोधणे
+        network_status = station_info.get("networkStatus", "UNKNOWN")
         daily_energy = float(
             station_info.get("generationToday", 
             station_info.get("dailyEnergy", 
@@ -75,14 +72,13 @@ def fetch_live_solar_data():
             station_info.get("dailyGeneration", 0.0)))))
         )
         
-        # स्टेप २: लाईव्ह डेटा (Current Power & Total Power) आणणे
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
         res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
         live_data = res_realtime.json()
         
         if live_data.get("success"):
-            # आपण मिळवलेली 'आजची वीज' या डेटामध्ये मुद्दाम जोडत आहोत
             live_data["custom_daily_energy"] = daily_energy 
+            live_data["network_status"] = network_status # स्टेट्स डॅशबोर्डला पाठवणे
             return live_data
         else:
             st.error("⚠️ लाईव्ह डेटा मिळवण्यात अडचण आली.")
@@ -127,7 +123,7 @@ if 'alarm_armed' not in st.session_state: st.session_state.alarm_armed = False
 if 'real_solar_power' not in st.session_state: st.session_state.real_solar_power = 0.0
 if 'real_solar_total' not in st.session_state: st.session_state.real_solar_total = 0.0
 if 'real_solar_daily' not in st.session_state: st.session_state.real_solar_daily = 0.0
-if 'debug_station_data' not in st.session_state: st.session_state.debug_station_data = {}
+if 'inverter_status' not in st.session_state: st.session_state.inverter_status = "UNKNOWN"
 
 def set_pump_state(key, state):
     st.session_state[key] = state
@@ -151,25 +147,20 @@ with st.sidebar:
             if data:
                 power_watts = float(data.get("generationPower", 0))
                 power_kw = power_watts / 1000.0 if power_watts > 10 else power_watts
-                
                 total_energy = float(data.get("generationTotal", 0))
                 daily_energy = float(data.get("custom_daily_energy", 0.0))
+                net_status = data.get("network_status", "UNKNOWN")
                 
                 st.session_state.real_solar_power = power_kw
                 st.session_state.real_solar_total = total_energy
                 st.session_state.real_solar_daily = daily_energy
+                st.session_state.inverter_status = net_status
                 st.session_state.is_solar_live = True
-                st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔍 स्टेशनचा कच्चा डेटा पहा (Debug)"):
-        with st.spinner("कच्चा डेटा आणत आहे..."):
-            fetch_live_solar_data()
-            if st.session_state.debug_station_data:
-                st.success("डेटा मिळाला! हा खालील मजकूर कॉपी करून पाठवा:")
-                st.json(st.session_state.debug_station_data)
-            else:
-                st.error("डेटा मिळाला नाही.")
+                
+                if "OFFLINE" in net_status:
+                    st.warning("🌙 इन्व्हर्टर ऑफलाईन आहे (डेटा रिफ्रेश झाला).")
+                else:
+                    st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
 
 # ---------------------------------------------------------
 # ६. टाक्यांचे डिझाईन 
@@ -286,6 +277,7 @@ with col_right:
                 current_power = st.session_state.real_solar_power
                 daily_kwh = st.session_state.real_solar_daily
                 is_generating = current_power > 0
+                is_offline = "OFFLINE" in st.session_state.inverter_status
                 
                 display_power = f"{current_power:.2f} kW"
                 if daily_kwh < 1.0:
@@ -293,11 +285,19 @@ with col_right:
                 else:
                     display_daily = f"{daily_kwh:.2f} kWh"
 
-                solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
-                line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-                status_color = "#2e7d32" if is_generating else "#c62828"
-                status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती बंद आहे (किंवा रात्र आहे)"
-                data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
+                # ऑफलाईन (रात्र) असेल तर राखाडी रंग आणि वेगळा मेसेज
+                if is_offline:
+                    solar_glow = "border: 1px solid #95a5a6;"
+                    line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+                    status_color = "#7f8c8d"
+                    status_text = "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (ऑफलाइन/रात्र)"
+                    data_source_badge = "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
+                else:
+                    solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
+                    line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+                    status_color = "#2e7d32" if is_generating else "#c62828"
+                    status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती बंद आहे"
+                    data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
             else:
                 display_power = "3.2 kW" if sim_solar else "0.0 kW"
                 display_daily = "60 Wh"
@@ -354,11 +354,10 @@ with col_right:
             total_kwh = st.session_state.real_solar_total if st.session_state.is_solar_live else 6114.5
             total_mwh = total_kwh / 1000.0
             
-            # सूत्रांनुसार लाईव्ह गणित (Formulas)
             co2_tons = 0.000793 * total_kwh
             trees_planted = int((total_kwh * 0.997) / 18.3)
-            running_days = 618 # हे स्थिर ठेवले आहे.
-            profit_inr = int(total_kwh * 7.5) # ₹7.5 प्रति युनिट अंदाजित नफा
+            running_days = 618 
+            profit_inr = int(total_kwh * 7.5) 
 
             card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
             
@@ -396,7 +395,7 @@ with col_right:
         if not any_pump_on and not sim_tanker: status_msgs.append("⚠️ सर्व पंप बंद आहेत.")
         else:
             if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
-            if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
+            if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू মাঠে आहे.")
             if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
             if sim_tanker: status_msgs.append("🚚 टँकरद्वारे पाणी येत आहे.")
         if tank1_pouring: status_msgs.append("🔹 'Tank 1' मध्ये पाणी भरत आहे.")
@@ -458,7 +457,7 @@ if is_any_water_pouring and not trigger_siren:
     st.markdown("""<audio autoplay loop id="waterAudio"><source src="https://actions.google.com/sounds/v1/water/stream_water.ogg" type="audio/ogg"></audio><script>document.getElementById("waterAudio").volume = 0.4;</script>""", unsafe_allow_html=True)
 
 alert_to_speak = ""
-if trigger_siren: alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली intrad."
+if trigger_siren: alert_to_speak = "सावधान! घरात घुसखोर आढळला आहे. सुरक्षा प्रणाली सुरू झाली आहे."
 elif (valve_t1 or valve_t2) and not any_pump_on: alert_to_speak = "सावधान! वाल्व्ह उघडा आहे, पण पंप बंद आहे."
 elif tank1_pouring and tank2_pouring: alert_to_speak = "टाकी एक आणि टाकी दोन मध्ये पाणी भरत आहे."
 elif tank1_pouring: alert_to_speak = "टाकी एक मध्ये पाणी भरत आहे."
