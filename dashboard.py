@@ -22,13 +22,12 @@ def get_base64_image(image_path):
         return ""
 
 # ---------------------------------------------------------
-# 🕉️ संपूर्ण पंचांग आणि अचूक वेळा काढण्याचे फंक्शन
+# 🕉️ संपूर्ण पंचांग आणि (पासून - पर्यंत) वेळा काढण्याचे फंक्शन
 # ---------------------------------------------------------
 def get_panchang_details(selected_date):
     observer = ephem.Observer()
     observer.lat, observer.lon, observer.elevation = '20.1059', '77.1358', 414 # Washim
     
-    # निवडलेल्या तारखेची सुरुवात (Midnight IST -> UTC)
     local_dt = datetime.combine(selected_date, datetime.min.time())
     utc_dt = local_dt - timedelta(hours=5, minutes=30)
     observer.date = utc_dt
@@ -36,7 +35,6 @@ def get_panchang_details(selected_date):
     try: sunrise = observer.next_rising(ephem.Sun())
     except: sunrise = ephem.Date(utc_dt + timedelta(hours=6))
     
-    # गणिताची सूत्रे
     def calc_tithi(t):
         s = math.degrees(ephem.Ecliptic(ephem.Sun(t)).lon)
         m = math.degrees(ephem.Ecliptic(ephem.Moon(t)).lon)
@@ -61,26 +59,36 @@ def get_panchang_details(selected_date):
     cur_yoga = calc_yoga(sunrise)
     cur_kar = calc_karana(sunrise)
     
-    # समाप्तीची वेळ शोधणे (End Time Calculator)
-    def find_end(start_t, cur_val, func):
-        t = start_t
-        for _ in range(72): # ३६ तासांपर्यंत पुढे तपासणे
+    # ⏳ 'सुरुवात' शोधण्याचे फंक्शन (मागे जाऊन शोधते)
+    def find_start(t_ref, cur_val, func):
+        t = t_ref
+        for _ in range(120): # ६० तासांपर्यंत मागे जाणे
+            t -= ephem.hour / 2
+            if func(t) != cur_val:
+                for _ in range(35): # मिनिटांनी अचूक वेळ फिक्स करणे
+                    t += ephem.minute
+                    if func(t) == cur_val:
+                        dt = ephem.Date(t).datetime() + timedelta(hours=5, minutes=30)
+                        return dt.strftime("%d %b, %I:%M %p")
+        return "-"
+
+    # ⏳ 'समाप्ती' शोधण्याचे फंक्शन (पुढे जाऊन शोधते)
+    def find_end(t_ref, cur_val, func):
+        t = t_ref
+        for _ in range(120): # ६० तासांपर्यंत पुढे जाणे
             t += ephem.hour / 2
             if func(t) != cur_val:
-                t -= ephem.hour / 2
-                for _ in range(30): # मिनिटांनी अचूक वेळ शोधणे
-                    t += ephem.minute
-                    if func(t) != cur_val:
-                        end_dt = ephem.Date(t).datetime() + timedelta(hours=5, minutes=30)
-                        return end_dt.strftime("%I:%M %p")
-        return "उद्या नंतर"
+                for _ in range(35):
+                    t -= ephem.minute
+                    if func(t) == cur_val:
+                        dt = ephem.Date(t).datetime() + timedelta(hours=5, minutes=30)
+                        return dt.strftime("%d %b, %I:%M %p")
+        return "-"
 
-    # नावे
     tithi_names = ["", "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी", "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी", "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "पौर्णिमा", "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी", "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी", "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "अमावस्या"]
     nakshatra_names = ["अश्विनी", "भरणी", "कृत्तिका", "रोहिणी", "मृगशीर्ष", "आर्द्रा", "पुनर्वसू", "पुष्य", "आश्लेषा", "मघा", "पूर्वा फाल्गुनी", "उत्तरा फाल्गुनी", "हस्त", "चित्रा", "स्वाती", "विशाखा", "अनुराधा", "ज्येष्ठा", "मूळ", "पूर्वाषाढा", "उत्तराषाढा", "श्रवण", "धनिष्ठा", "शततारका", "पूर्वा भाद्रपदा", "उत्तरा भाद्रपदा", "रेवती"]
     yoga_names = ["विष्कंभ", "प्रीती", "आयुष्मान", "सौभाग्य", "शोभन", "अतिगंड", "सुकर्मा", "धृती", "शूल", "गंड", "वृद्धी", "ध्रुव", "व्याघात", "हर्षण", "वज्र", "सिद्धी", "व्यतीपात", "वरीयान", "परिघ", "शिव", "सिद्ध", "साध्य", "शुभ", "शुक्ल", "ब्रह्म", "ऐंद्र", "वैधृती"]
     
-    # करणचे नाव काढणे
     if cur_kar == 0: k_name = "किंस्तुघ्न"
     elif cur_kar == 57: k_name = "शकुनी"
     elif cur_kar == 58: k_name = "चतुष्पाद"
@@ -91,12 +99,16 @@ def get_panchang_details(selected_date):
     
     return {
         "tithi": f"{paksha} {tithi_names[cur_tithi]}",
+        "t_start": find_start(sunrise, cur_tithi, calc_tithi),
         "t_end": find_end(sunrise, cur_tithi, calc_tithi),
         "nakshatra": nakshatra_names[cur_nak % 27],
+        "n_start": find_start(sunrise, cur_nak, calc_nakshatra),
         "n_end": find_end(sunrise, cur_nak, calc_nakshatra),
         "yoga": yoga_names[cur_yoga % 27],
+        "y_start": find_start(sunrise, cur_yoga, calc_yoga),
         "y_end": find_end(sunrise, cur_yoga, calc_yoga),
         "karana": k_name,
+        "k_start": find_start(sunrise, cur_kar, calc_karana),
         "k_end": find_end(sunrise, cur_kar, calc_karana),
         "is_chaturthi": cur_tithi in [4, 19],
         "is_ekadashi": cur_tithi in [11, 26]
@@ -582,40 +594,44 @@ else:
                 # तारीख निवडण्याची सुविधा
                 selected_date = st.date_input("तारीख निवडा:", today_dt)
                 
-                # नवीन तारखेनुसार पंचांग लोड करणे
                 if selected_date == today_dt: sel_panchang = tdy_panchang
                 else: sel_panchang = get_panchang_details(selected_date)
                 
                 sel_vaar = vaar_names[selected_date.weekday()]
                 
-                # पंचांग टेबल (Start & End Time)
+                # पंचांग टेबल (Start & End Time) - सुधारित "सुरुवात / समाप्ती (दिनांक व वेळ)" डिझाईन
                 st.markdown(f"<div style='text-align:center; font-size:14px; font-weight:bold; margin-bottom:10px;'>{selected_date.strftime('%d-%m-%Y')} ({sel_vaar})</div>", unsafe_allow_html=True)
                 st.markdown(f"""
                 <table style="width:100%; border-collapse: collapse; font-size: 13px;">
-                  <tr style="border-bottom: 1px solid #ddd;">
-                    <th style="padding: 5px; text-align: left; color:#555;">अंग</th>
-                    <th style="padding: 5px; text-align: left; color:#555;">सध्या चालू</th>
-                    <th style="padding: 5px; text-align: right; color:#555;">समाप्तीची वेळ</th>
+                  <tr style="border-bottom: 2px solid #ddd; background-color: #f9f9f9;">
+                    <th style="padding: 6px; text-align: left; color:#555;">अंग</th>
+                    <th style="padding: 6px; text-align: left; color:#555;">नाव</th>
+                    <th style="padding: 6px; text-align: center; color:#555;">सुरुवात<br><span style="font-size:11px;">(दिनांक व वेळ)</span></th>
+                    <th style="padding: 6px; text-align: center; color:#555;">समाप्ती<br><span style="font-size:11px;">(दिनांक व वेळ)</span></th>
                   </tr>
                   <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 5px;"><b>🌙 तिथी</b></td>
-                    <td style="padding: 5px; color:#d35400;"><b>{sel_panchang['tithi']}</b></td>
-                    <td style="padding: 5px; text-align: right;">{sel_panchang['t_end']}</td>
+                    <td style="padding: 6px;"><b>🌙 तिथी</b></td>
+                    <td style="padding: 6px; color:#d35400;"><b>{sel_panchang['tithi']}</b></td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['t_start']}</td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['t_end']}</td>
                   </tr>
                   <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 5px;"><b>✨ नक्षत्र</b></td>
-                    <td style="padding: 5px; color:#d35400;"><b>{sel_panchang['nakshatra']}</b></td>
-                    <td style="padding: 5px; text-align: right;">{sel_panchang['n_end']}</td>
+                    <td style="padding: 6px;"><b>✨ नक्षत्र</b></td>
+                    <td style="padding: 6px; color:#d35400;"><b>{sel_panchang['nakshatra']}</b></td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['n_start']}</td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['n_end']}</td>
                   </tr>
                   <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 5px;"><b>🧘 योग</b></td>
-                    <td style="padding: 5px; color:#d35400;"><b>{sel_panchang['yoga']}</b></td>
-                    <td style="padding: 5px; text-align: right;">{sel_panchang['y_end']}</td>
+                    <td style="padding: 6px;"><b>🧘 योग</b></td>
+                    <td style="padding: 6px; color:#d35400;"><b>{sel_panchang['yoga']}</b></td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['y_start']}</td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['y_end']}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 5px;"><b>🚩 करण</b></td>
-                    <td style="padding: 5px; color:#d35400;"><b>{sel_panchang['karana']}</b></td>
-                    <td style="padding: 5px; text-align: right;">{sel_panchang['k_end']}</td>
+                    <td style="padding: 6px;"><b>🚩 करण</b></td>
+                    <td style="padding: 6px; color:#d35400;"><b>{sel_panchang['karana']}</b></td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['k_start']}</td>
+                    <td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['k_end']}</td>
                   </tr>
                 </table>
                 """, unsafe_allow_html=True)
