@@ -51,6 +51,7 @@ def fetch_live_solar_data():
         app_id = st.secrets["sofar"]["app_id"]
         headers = {"Authorization": f"bearer {token}"}
         
+        # स्टेप १: स्टेशन ID आणि "आजची वीज" शोधणे
         url_list = f"https://globalapi.solarmanpv.com/station/v1.0/list?appId={app_id}&language=en"
         res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10}, timeout=10)
         station_data = res_list.json()
@@ -62,7 +63,8 @@ def fetch_live_solar_data():
         station_info = station_data["stationList"][0]
         station_id = station_info["id"]
         
-        # 💡 नवीन लॉजिक: नेटवर्क स्टेट्स आणि आजची वीज शोधणे
+        st.session_state.debug_station_data = station_info
+        
         network_status = station_info.get("networkStatus", "UNKNOWN")
         daily_energy = float(
             station_info.get("generationToday", 
@@ -72,13 +74,14 @@ def fetch_live_solar_data():
             station_info.get("dailyGeneration", 0.0)))))
         )
         
+        # स्टेप २: लाईव्ह डेटा आणणे
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
         res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
         live_data = res_realtime.json()
         
         if live_data.get("success"):
             live_data["custom_daily_energy"] = daily_energy 
-            live_data["network_status"] = network_status # स्टेट्स डॅशबोर्डला पाठवणे
+            live_data["network_status"] = network_status 
             return live_data
         else:
             st.error("⚠️ लाईव्ह डेटा मिळवण्यात अडचण आली.")
@@ -123,7 +126,8 @@ if 'alarm_armed' not in st.session_state: st.session_state.alarm_armed = False
 if 'real_solar_power' not in st.session_state: st.session_state.real_solar_power = 0.0
 if 'real_solar_total' not in st.session_state: st.session_state.real_solar_total = 0.0
 if 'real_solar_daily' not in st.session_state: st.session_state.real_solar_daily = 0.0
-if 'inverter_status' not in st.session_state: st.session_state.inverter_status = "UNKNOWN"
+if 'inverter_status' not in st.session_state: st.session_state.inverter_status = "PENDING"
+if 'debug_station_data' not in st.session_state: st.session_state.debug_station_data = {}
 
 def set_pump_state(key, state):
     st.session_state[key] = state
@@ -134,7 +138,6 @@ def set_pump_state(key, state):
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
-    sim_solar = st.checkbox("☀️ सोलर वीज निर्मिती चालू करा (Simulator)", value=True)
     st.markdown("---")
     st.markdown("#### 🏃‍♂️ घुसखोर (Motion Detection)")
     simulate_motion = st.checkbox("🚶 हालचाल करा (Test Motion)")
@@ -147,6 +150,7 @@ with st.sidebar:
             if data:
                 power_watts = float(data.get("generationPower", 0))
                 power_kw = power_watts / 1000.0 if power_watts > 10 else power_watts
+                
                 total_energy = float(data.get("generationTotal", 0))
                 daily_energy = float(data.get("custom_daily_energy", 0.0))
                 net_status = data.get("network_status", "UNKNOWN")
@@ -161,6 +165,16 @@ with st.sidebar:
                     st.warning("🌙 इन्व्हर्टर ऑफलाईन आहे (डेटा रिफ्रेश झाला).")
                 else:
                     st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔍 स्टेशनचा कच्चा डेटा पहा (Debug)"):
+        with st.spinner("कच्चा डेटा आणत आहे..."):
+            fetch_live_solar_data()
+            if st.session_state.debug_station_data:
+                st.success("डेटा मिळाला! हा खालील मजकूर कॉपी करून पाठवा:")
+                st.json(st.session_state.debug_station_data)
+            else:
+                st.error("डेटा मिळाला नाही.")
 
 # ---------------------------------------------------------
 # ६. टाक्यांचे डिझाईन 
@@ -269,43 +283,39 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा (Live vs Simulator & Report View)
+    # ☀️ सोलर ऊर्जा (Strictly Live API Data)
     with st.container(border=True):
         if not st.session_state.show_solar_report:
             # --- मुख्य डॅशबोर्ड (Main View) ---
-            if st.session_state.is_solar_live:
-                current_power = st.session_state.real_solar_power
-                daily_kwh = st.session_state.real_solar_daily
-                is_generating = current_power > 0
-                is_offline = "OFFLINE" in st.session_state.inverter_status
-                
-                display_power = f"{current_power:.2f} kW"
-                if daily_kwh < 1.0:
-                    display_daily = f"{int(daily_kwh * 1000)} Wh"
-                else:
-                    display_daily = f"{daily_kwh:.2f} kWh"
-
-                # ऑफलाईन (रात्र) असेल तर राखाडी रंग आणि वेगळा मेसेज
-                if is_offline:
-                    solar_glow = "border: 1px solid #95a5a6;"
-                    line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-                    status_color = "#7f8c8d"
-                    status_text = "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (ऑफलाइन/रात्र)"
-                    data_source_badge = "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
-                else:
-                    solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
-                    line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-                    status_color = "#2e7d32" if is_generating else "#c62828"
-                    status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती बंद आहे"
-                    data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
+            current_power = st.session_state.real_solar_power
+            daily_kwh = st.session_state.real_solar_daily
+            is_generating = current_power > 0
+            is_offline = "OFFLINE" in st.session_state.inverter_status
+            
+            display_power = f"{current_power:.2f} kW"
+            if daily_kwh < 1.0:
+                display_daily = f"{int(daily_kwh * 1000)} Wh"
             else:
-                display_power = "3.2 kW" if sim_solar else "0.0 kW"
-                display_daily = "60 Wh"
-                solar_glow = "animation: sunGlow 3s infinite;" if sim_solar else "border: 1px solid #ccc;"
-                line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if sim_solar else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
-                status_color = "#2e7d32" if sim_solar else "#c62828"
-                status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Simulator)" if sim_solar else "🔴 सौर निर्मिती बंद आहे (Simulator)"
-                data_source_badge = "<span style='background-color: #ff9800; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>⚠️ SIMULATOR</span>"
+                display_daily = f"{daily_kwh:.2f} kWh"
+
+            if not st.session_state.is_solar_live:
+                solar_glow = "border: 1px solid #ccc;"
+                line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+                status_color = "#555"
+                status_text = "🔄 कृपया 'लाईव्ह डेटा रिफ्रेश करा' बटण दाबा"
+                data_source_badge = "<span style='background-color: #9e9e9e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>⏳ PENDING</span>"
+            elif is_offline:
+                solar_glow = "border: 1px solid #95a5a6;"
+                line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+                status_color = "#7f8c8d"
+                status_text = "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (ऑफलाइन/रात्र)"
+                data_source_badge = "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
+            else:
+                solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
+                line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+                status_color = "#2e7d32" if is_generating else "#c62828"
+                status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती सध्या 0 W आहे"
+                data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
 
             solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><line x1="20" y1="2" x2="20" y2="7" stroke="#FFA500" stroke-width="2"/><line x1="20" y1="38" x2="20" y2="33" stroke="#FFA500" stroke-width="2"/><line x1="2" y1="20" x2="7" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="38" y1="20" x2="33" y2="20" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="7" x2="11" y2="11" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="33" x2="29" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="7" y1="33" x2="11" y2="29" stroke="#FFA500" stroke-width="2"/><line x1="33" y1="7" x2="29" y2="11" stroke="#FFA500" stroke-width="2"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/><line x1="40" y1="60" x2="77" y2="55" stroke="#ddd" stroke-width="1.5"/><line x1="53" y1="35" x2="42" y2="82" stroke="#ddd" stroke-width="1.5"/><line x1="68" y1="32" x2="57" y2="80" stroke="#ddd" stroke-width="1.5"/></svg>"""
             grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="55" y2="30" stroke="#555" stroke-width="3"/><line x1="40" y1="50" x2="60" y2="50" stroke="#555" stroke-width="3"/><line x1="35" y1="70" x2="65" y2="70" stroke="#555" stroke-width="3"/><line x1="45" y1="30" x2="60" y2="50" stroke="#555" stroke-width="2"/><line x1="55" y1="30" x2="40" y2="50" stroke="#555" stroke-width="2"/><line x1="40" y1="50" x2="65" y2="70" stroke="#555" stroke-width="2"/><line x1="60" y1="50" x2="35" y2="70" stroke="#555" stroke-width="2"/><line x1="25" y1="30" x2="75" y2="30" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
@@ -327,20 +337,19 @@ with col_right:
                 st.session_state.show_solar_report = False
                 st.rerun()
 
-            # १. ग्राफिक्स टॅब्स
+            # १. ग्राफिक्स टॅब्स (Dummy Graphs Removed - Only Empty Structure)
             tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
             with tab_day:
-                st.markdown("<div style='font-size: 12px; color: #666; text-align: right;'>01/04/2026</div>", unsafe_allow_html=True)
-                st.line_chart([0, 0, 0, 5, 45, 95, 100, 90, 40, 0, 0], height=150) 
+                st.line_chart([0]*10, height=150) 
             with tab_month:
-                st.bar_chart([120, 150, 200, 180, 210, 190, 220, 215, 190, 160, 140, 130], height=150)
+                st.bar_chart([0]*12, height=150)
             with tab_year:
-                st.bar_chart([2.1, 3.4, 4.5, 5.2, 6.1], height=150)
+                st.bar_chart([0]*5, height=150)
             with tab_total:
-                st.line_chart([100, 500, 1200, 2500, 4000, 6114], height=150)
+                st.line_chart([0]*10, height=150)
 
-            # २. Daily Production (LIVE: W vs kW Logic)
-            daily_production_kwh = st.session_state.real_solar_daily if st.session_state.is_solar_live else 0.06
+            # २. Daily Production (Strictly API Data)
+            daily_production_kwh = st.session_state.real_solar_daily
             if daily_production_kwh < 1.0:
                 report_daily_display = f"{int(daily_production_kwh * 1000)} Wh"
             else:
@@ -348,15 +357,15 @@ with col_right:
 
             st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
 
-            # ३. Operation Statistics (LIVE Exact Formula Logic)
+            # ३. Operation Statistics (Strictly API Data)
             st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
             
-            total_kwh = st.session_state.real_solar_total if st.session_state.is_solar_live else 6114.5
+            total_kwh = st.session_state.real_solar_total
             total_mwh = total_kwh / 1000.0
             
             co2_tons = 0.000793 * total_kwh
             trees_planted = int((total_kwh * 0.997) / 18.3)
-            running_days = 618 
+            running_days = 0 if not st.session_state.is_solar_live else 618 # Live झाल्यावरच दाखवेल
             profit_inr = int(total_kwh * 7.5) 
 
             card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
@@ -395,7 +404,7 @@ with col_right:
         if not any_pump_on and not sim_tanker: status_msgs.append("⚠️ सर्व पंप बंद आहेत.")
         else:
             if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
-            if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू মাঠে आहे.")
+            if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
             if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
             if sim_tanker: status_msgs.append("🚚 टँकरद्वारे पाणी येत आहे.")
         if tank1_pouring: status_msgs.append("🔹 'Tank 1' मध्ये पाणी भरत आहे.")
