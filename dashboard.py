@@ -113,7 +113,7 @@ def get_panchang_details(selected_date):
     }
 
 # ---------------------------------------------------------
-# 🔐 १. Solarman (Sofar) API सुरक्षित टोकन मिळवणे
+# 🔐 १. Solarman API सुरक्षित टोकन मिळवणे
 # ---------------------------------------------------------
 def get_solarman_token():
     try:
@@ -125,21 +125,13 @@ def get_solarman_token():
         hashed_password = hashlib.sha256(raw_password.encode('utf-8')).hexdigest().lower()
 
         url = f"https://globalapi.solarmanpv.com/account/v1.0/token?appId={app_id}&language=en"
-        payload = {
-            "appSecret": app_secret,
-            "email": email,
-            "password": hashed_password
-        }
+        payload = {"appSecret": app_secret, "email": email, "password": hashed_password}
 
         response = requests.post(url, json=payload, timeout=10)
         data = response.json()
 
-        if data.get("success"):
-            return data.get("access_token")
-        else:
-            st.error(f"⚠️ API Error: {data.get('msg')}")
-            return None
-
+        if data.get("success"): return data.get("access_token")
+        else: st.error(f"⚠️ API Error: {data.get('msg')}"); return None
     except Exception as e:
         st.error(f"⚠️ कनेक्शनमध्ये अडचण (Secrets फाईल तपासा): {e}")
         return None
@@ -149,8 +141,7 @@ def get_solarman_token():
 # ---------------------------------------------------------
 def fetch_live_solar_data():
     token = get_solarman_token()
-    if not token:
-        return None
+    if not token: return None
     
     try:
         app_id = st.secrets["sofar"]["app_id"]
@@ -178,41 +169,30 @@ def fetch_live_solar_data():
             station_info.get("dailyGeneration", 0.0)))))
         )
         
-        # 1. रिअलटाईम (सध्याची) वीज
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
         res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
         live_data = res_realtime.json()
         
-        # 2. ऐतिहासिक ग्राफ डेटा मिळवणे (Day, Month, Year, Total)
         history_data = {}
         try:
             today_str = datetime.now().strftime('%Y-%m-%d')
             hist_url = f"https://globalapi.solarmanpv.com/station/v1.0/history?appId={app_id}&language=en"
-            
             r_day = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 1, "startTime": today_str, "endTime": today_str}, timeout=10).json()
             r_month = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 2, "startTime": today_str, "endTime": today_str}, timeout=10).json()
             r_year = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 3, "startTime": today_str, "endTime": today_str}, timeout=10).json()
             r_total = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 4, "startTime": today_str, "endTime": today_str}, timeout=10).json()
             
-            st.session_state.debug_station_data["history_sample"] = r_day # Debug साठी सेव्ह करणे
-            
             def extract_vals(res):
                 if isinstance(res, dict):
                     for k, v in res.items():
                         if isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
-                            vals = []
-                            for i in v:
-                                val = i.get('value', i.get('generation', i.get('power', 0)))
-                                vals.append(float(val) if val is not None else 0.0)
-                            return vals
+                            return [float(i.get('value', i.get('generation', i.get('power', 0))) or 0.0) for i in v]
                 return []
-                
             history_data['day'] = extract_vals(r_day)
             history_data['month'] = extract_vals(r_month)
             history_data['year'] = extract_vals(r_year)
             history_data['total'] = extract_vals(r_total)
-        except Exception as e:
-            pass # जर हिस्ट्री फेल झाली तरी मुख्य डॅशबोर्ड सुरू राहील
+        except: pass
         
         if live_data.get("success"):
             live_data["custom_daily_energy"] = daily_energy 
@@ -228,7 +208,7 @@ def fetch_live_solar_data():
         return None
 
 # ---------------------------------------------------------
-# ३. अतिशय साधा आणि सुरक्षित CSS
+# ३. जुने CSS (फक्त ॲनिमेशन्स आणि बॅनर)
 # ---------------------------------------------------------
 css = """
 <style>
@@ -257,24 +237,11 @@ panchang_banner = st.empty()
 # ४. स्टेट्स (Session State)
 # ---------------------------------------------------------
 for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug', 'is_solar_live']:
-    if key not in st.session_state:
-        st.session_state[key] = False
+    if key not in st.session_state: st.session_state[key] = False
+for key, default in [('alarm_armed', False), ('real_solar_power', 0.0), ('real_solar_total', 0.0), ('real_solar_daily', 0.0), ('inverter_status', "PENDING"), ('chart_day', [0]*10), ('chart_month', [0]*12), ('chart_year', [0]*5), ('chart_total', [0]*10)]:
+    if key not in st.session_state: st.session_state[key] = default
 
-if 'alarm_armed' not in st.session_state: st.session_state.alarm_armed = False
-if 'real_solar_power' not in st.session_state: st.session_state.real_solar_power = 0.0
-if 'real_solar_total' not in st.session_state: st.session_state.real_solar_total = 0.0
-if 'real_solar_daily' not in st.session_state: st.session_state.real_solar_daily = 0.0
-if 'inverter_status' not in st.session_state: st.session_state.inverter_status = "PENDING"
-if 'debug_station_data' not in st.session_state: st.session_state.debug_station_data = {}
-
-# ग्राफ्स साठी नवीन सेशन स्टेट
-if 'chart_day' not in st.session_state: st.session_state.chart_day = [0]*10
-if 'chart_month' not in st.session_state: st.session_state.chart_month = [0]*12
-if 'chart_year' not in st.session_state: st.session_state.chart_year = [0]*5
-if 'chart_total' not in st.session_state: st.session_state.chart_total = [0]*10
-
-def set_pump_state(key, state):
-    st.session_state[key] = state
+def set_pump_state(key, state): st.session_state[key] = state
 
 # ---------------------------------------------------------
 # ⚙️ ५. साईडबार आणि API कंट्रोल्स
@@ -289,7 +256,7 @@ with st.sidebar:
     st.markdown("#### 🔌 खऱ्या सोलरचे API कनेक्शन")
     
     if st.button("🔄 लाईव्ह डेटा रिफ्रेश करा", type="primary"):
-        with st.spinner("लाईव्ह आणि ऐतिहासिक डेटा आणत आहे..."):
+        with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत आहे..."):
             data = fetch_live_solar_data()
             if data:
                 power_watts = float(data.get("generationPower", 0))
@@ -304,12 +271,9 @@ with st.sidebar:
                 st.session_state.real_solar_daily = daily_energy
                 st.session_state.inverter_status = net_status
                 
-                # ऐतिहासिक ग्राफ डेटा सेव्ह करणे
                 hist = data.get("history", {})
-                if hist.get('day'): st.session_state.chart_day = hist['day']
-                if hist.get('month'): st.session_state.chart_month = hist['month']
-                if hist.get('year'): st.session_state.chart_year = hist['year']
-                if hist.get('total'): st.session_state.chart_total = hist['total']
+                for k in ['day', 'month', 'year', 'total']:
+                    if hist.get(k): st.session_state[f"chart_{k}"] = hist[k]
                 
                 st.session_state.is_solar_live = True
                 
@@ -318,13 +282,26 @@ with st.sidebar:
                 else:
                     st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
 
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔍 स्टेशनचा कच्चा डेटा पहा (Debug)"):
+        with st.spinner("कच्चा डेटा आणत आहे..."):
+            fetch_live_solar_data()
+            if st.session_state.debug_station_data:
+                st.success("डेटा मिळाला! हा खालील मजकूर कॉपी करून पाठवा:")
+                st.json(st.session_state.debug_station_data)
+            else:
+                st.error("डेटा मिळाला नाही.")
+
 # ---------------------------------------------------------
-# ६. टाक्यांचे डिझाईन 
+# ६. टाक्यांचे डिझाईन (जुने डिझाईन + नवीन पाण्याचा रंग)
 # ---------------------------------------------------------
 def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
-    water_color = "#00b4d8" if tank_type == "overhead" else "#0077b6"
-    dark_wave_color = "%23004b7c" if tank_type == "overhead" else "%23003366" 
+    
+    # फक्त पाण्याचा बदललेला रंग (3D Gradient)
+    water_grad = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)" if tank_type == "overhead" else "linear-gradient(to bottom, #0077b6 0%, #023e8a 100%)"
+    dark_wave_color = "%23005b96" if tank_type == "overhead" else "%23023e8a"
+    
     tank_height = "160px" if tank_type == "underground" else "220px"
     tank_width = "100%" if tank_type == "underground" else "160px"
 
@@ -337,10 +314,10 @@ def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
         active_pour = f"<div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.3s infinite linear; z-index: 1;'></div>" if inlet['active'] else ""
         pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
-    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background-color: {water_color}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
+    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     return html
 
-# ७. स्टार्टर पॅनेल डिझाईन
+# ७. स्टार्टर पॅनेल डिझाईन (जुने)
 def render_compact_starter(col_obj, pump_name, state_key):
     is_on = st.session_state[state_key]
     needle_rot = -12 if is_on else -45
@@ -369,7 +346,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
-# 🎛️ ८. ॲनिमेटेड वाल्व्ह डिझाईन
+# 🎛️ ८. ॲनिमेटेड वाल्व्ह डिझाईन (जुने)
 def render_animated_valve(col_obj, valve_name, state_key):
     is_on = st.session_state[state_key]
     handle_rot = 90 if is_on else 0 
@@ -414,7 +391,7 @@ ug_pouring_from_tanker = sim_tanker
 garden_watering = ug_pump and not valve_t1 and not valve_t2
 is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
 
-# १०. मुख्य डॅशबोर्ड लेआउट
+# १०. मुख्य डॅशबोर्ड लेआउट (जुने [1.5, 1] Layout)
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
@@ -425,7 +402,7 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा (Strictly Live API Data + Compact Report Popover)
+    # ☀️ सोलर ऊर्जा (जुने डिझाईन)
     with st.container(border=True):
         current_power = st.session_state.real_solar_power
         daily_kwh = st.session_state.real_solar_daily
@@ -491,9 +468,13 @@ with col_right:
                 total_mwh = total_kwh / 1000.0
                 co2_tons = 0.000793 * total_kwh
                 trees_planted = int((total_kwh * 0.997) / 18.3)
-                running_days = 0 if not st.session_state.is_solar_live else 618 
+                
+                # ✨ एकूण दिवस (Running Days) - २१ जुलै २०२४ पासून
+                start_date = datetime.fromtimestamp(1721561718)
+                running_days = (datetime.now() - start_date).days if st.session_state.is_solar_live else 618 
                 profit_inr = int(total_kwh * 7.5) 
 
+                # जुने रिपोर्ट बॉक्सेस डिझाईन
                 card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
                 
                 col_a, col_b = st.columns(2)
