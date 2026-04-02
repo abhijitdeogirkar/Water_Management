@@ -397,12 +397,30 @@ col_left, col_right = st.columns([1.5, 1])
 with col_right:
     status_board = st.empty()
 
-    # 🛡️ सुरक्षा प्रणाली
+    # 🛡️ सुरक्षा प्रणाली (आता यातच कॅमेरे आहेत)
     with st.container(border=True):
-        st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
-        st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
+        st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली</h5></div>", unsafe_allow_html=True)
+        sec_c1, sec_c2 = st.columns([1.5, 1], vertical_alignment="center")
+        
+        with sec_c1:
+            st.session_state.alarm_armed = st.toggle("🚨 अलार्म (Arm)", value=st.session_state.alarm_armed)
+        
+        with sec_c2:
+            cctv_pop = st.popover("📹 कॅमेरे", use_container_width=True)
+            with cctv_pop:
+                # ⬅️ डॅशबोर्डवर परत जा बटण
+                if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_cctv_btn", use_container_width=True):
+                    st.rerun()
+                
+                st.markdown("<h5 style='color: #1e3c72; text-align: center; margin-bottom: 15px;'>📹 सुरक्षा कॅमेरे (Live CCTV)</h5>", unsafe_allow_html=True)
+                placeholder_style = "background-color: #111; height: 200px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
+                recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
 
-    # ☀️ सोलर ऊर्जा (जुने डिझाईन)
+                cam_col1, cam_col2 = st.columns(2)
+                with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}CAM 1<br><br>RTSP Stream</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार</div>", unsafe_allow_html=True)
+                with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}CAM 2<br><br>RTSP Stream</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग</div>", unsafe_allow_html=True)
+
+    # ☀️ सोलर ऊर्जा
     with st.container(border=True):
         current_power = st.session_state.real_solar_power
         daily_kwh = st.session_state.real_solar_daily
@@ -448,7 +466,7 @@ with col_right:
         with sc2:
             report_pop = st.popover("📊 सोलर रिपोर्ट", use_container_width=True)
             with report_pop:
-                # ⬅️ डॅशबोर्डवर परत जा बटण (DURUSTA KELELE)
+                # ⬅️ डॅशबोर्डवर परत जा बटण
                 if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_solar_btn", use_container_width=True):
                     st.rerun()
 
@@ -530,7 +548,7 @@ with col_left:
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
 
-    # ✨ अंडरग्राउंड टाकी आणि गार्डन शेजारी-शेजारी (DURUSTA KELELE Inline String)
+    # ✨ अंडरग्राउंड टाकी आणि गार्डन एकाच रेषेत (Inline String to avoid markdown code blocks)
     garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
 
     html_combined = (
@@ -538,37 +556,17 @@ with col_left:
         f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t1}</div>"
         f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t2}</div>"
         "</div>"
-        "<div style='display: flex; justify-content: space-around; width: 100%; gap: 15px; margin-top: 15px; align-items: stretch;'>"
+        "<div style='display: flex; justify-content: space-around; width: 100%; gap: 15px; align-items: flex-end;'>"
         f"<div style='flex: 1; display: flex; justify-content: center; width: 100%;'>{html_ug}</div>"
-        f"<div style='flex: 1; display: flex; justify-content: center; align-items: center; padding-top: 50px; width: 100%;'>"
-        "<div style='width: 100%; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; padding: 25px 10px; text-align: center; position: relative;'>"
+        f"<div style='flex: 1; display: flex; justify-content: center; width: 100%; margin-bottom: 20px;'>"
+        "<div style='width: 100%; max-width: 250px; height: 160px; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);'>"
         f"{garden_active_html}"
         "<div style='font-size: 40px;'>🌳🏡🌿</div>"
         "<h4 style='color: #2e7d32; margin: 10px 0 0 0;'>गार्डन / झाडे</h4>"
-        "<p style='font-size: 12px; color: #555; margin: 5px 0 0 0;'>अंडरग्राउंड टाकीतून पाणी</p>"
+        "<p style='font-size: 11px; color: #555; margin: 5px 0 0 0;'>अंडरग्राउंड टाकीतून</p>"
         "</div></div></div>"
     )
     st.markdown(html_combined, unsafe_allow_html=True)
-
-st.markdown("<br><hr>", unsafe_allow_html=True)
-
-# 📹 सुरक्षा कॅमेरे (आता पॉपअप मध्ये)
-cctv_col1, cctv_col2, cctv_col3 = st.columns([1.5, 1, 1.5])
-with cctv_col2:
-    cctv_pop = st.popover("📹 सुरक्षा कॅमेरे पहा", use_container_width=True)
-
-with cctv_pop:
-    # ⬅️ डॅशबोर्डवर परत जा बटण (DURUSTA KELELE)
-    if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_cctv_btn", use_container_width=True):
-        st.rerun()
-        
-    st.markdown("<h4 style='color: #1e3c72; text-align: center; margin-bottom: 15px;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h4>", unsafe_allow_html=True)
-    placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
-    recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
-
-    cam_col1, cam_col2 = st.columns(2)
-    with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार (Main Gate)</div>", unsafe_allow_html=True)
-    with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # 📢 ११. सायरन आणि 🕉️ कॉम्पेक्ट पंचांग पट्टी (Popup सह)
@@ -618,7 +616,7 @@ else:
         
         with p_col2:
             with st.popover("📅 पंचांग", help="विस्तृत पंचांग आणि वेळा पहा"):
-                # ⬅️ डॅशबोर्डवर परत जा बटण (DURUSTA KELELE)
+                # ⬅️ डॅशबोर्डवर परत जा बटण
                 if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_panchang_btn", use_container_width=True):
                     st.rerun()
                 
