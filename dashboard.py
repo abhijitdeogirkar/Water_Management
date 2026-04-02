@@ -293,12 +293,12 @@ with st.sidebar:
                 st.error("डेटा मिळाला नाही.")
 
 # ---------------------------------------------------------
-# ६. टाक्यांचे डिझाईन (जुने डिझाईन + नवीन पाण्याचा रंग)
+# ६. टाक्यांचे डिझाईन (3D Water Gradient सह)
 # ---------------------------------------------------------
 def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     
-    # फक्त पाण्याचा बदललेला रंग (3D Gradient)
+    # पाण्याचा बदललेला रंग (3D Gradient)
     water_grad = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)" if tank_type == "overhead" else "linear-gradient(to bottom, #0077b6 0%, #023e8a 100%)"
     dark_wave_color = "%23005b96" if tank_type == "overhead" else "%23023e8a"
     
@@ -427,7 +427,7 @@ with col_right:
             data_source_badge = "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
         else:
             solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
-            line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+            line_style = "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
             status_color = "#2e7d32" if is_generating else "#c62828"
             status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती सध्या 0 W आहे"
             data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
@@ -449,8 +449,9 @@ with col_right:
             report_pop = st.popover("📊 सोलर रिपोर्ट", use_container_width=True)
             with report_pop:
                 # ⬅️ डॅशबोर्डवर परत जा बटण (सुधारित)
-                st.button("⬅️ डॅशबोर्डवर परत जा", key="close_solar", use_container_width=True)
-                st.markdown("<p style='text-align:center; font-size:10px; color:#888;'>(किंवा पॉपअपच्या बाहेर कुठेही क्लिक करा)</p>", unsafe_allow_html=True)
+                if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_solar_btn", use_container_width=True):
+                    try: st.rerun()
+                    except: st.experimental_rerun()
 
                 st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
 
@@ -530,28 +531,24 @@ with col_left:
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
 
-    # ✨ अंडरग्राउंड टाकी आणि गार्डन शेजारी-शेजारी (Side-by-Side - Corrected HTML/Markdown spacing)
+    # ✨ अंडरग्राउंड टाकी आणि गार्डन शेजारी-शेजारी (Zero Indentation - No Code Block Issue)
     garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
 
-    html_combined = f"""
-<div style='display: flex; justify-content: space-around; width: 100%; gap: 10px;'>
-    <div style='flex: 1; display: flex; justify-content: center;'>{html_t1}</div>
-    <div style='flex: 1; display: flex; justify-content: center;'>{html_t2}</div>
-</div>
-<div style='display: flex; justify-content: space-around; width: 100%; gap: 15px; margin-top: 15px; align-items: stretch;'>
-    <div style='flex: 1; display: flex; justify-content: center; width: 100%;'>
-        {html_ug}
-    </div>
-    <div style='flex: 1; display: flex; justify-content: center; align-items: center; padding-top: 50px; width: 100%;'>
-        <div style='width: 100%; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; padding: 25px 10px; text-align: center; position: relative;'>
-            {garden_active_html}
-            <div style='font-size: 40px;'>🌳🏡🌿</div>
-            <h4 style='color: #2e7d32; margin: 10px 0 0 0;'>गार्डन / झाडे</h4>
-            <p style='font-size: 12px; color: #555; margin: 5px 0 0 0;'>अंडरग्राउंड टाकीतून पाणी</p>
-        </div>
-    </div>
-</div>
-"""
+    html_combined = (
+        "<div style='display: flex; justify-content: space-around; width: 100%; gap: 10px;'>"
+        f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t1}</div>"
+        f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t2}</div>"
+        "</div>"
+        "<div style='display: flex; justify-content: space-around; width: 100%; gap: 15px; margin-top: 15px; align-items: stretch;'>"
+        f"<div style='flex: 1; display: flex; justify-content: center; width: 100%;'>{html_ug}</div>"
+        f"<div style='flex: 1; display: flex; justify-content: center; align-items: center; padding-top: 50px; width: 100%;'>"
+        "<div style='width: 100%; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; padding: 25px 10px; text-align: center; position: relative;'>"
+        f"{garden_active_html}"
+        "<div style='font-size: 40px;'>🌳🏡🌿</div>"
+        "<h4 style='color: #2e7d32; margin: 10px 0 0 0;'>गार्डन / झाडे</h4>"
+        "<p style='font-size: 12px; color: #555; margin: 5px 0 0 0;'>अंडरग्राउंड टाकीतून पाणी</p>"
+        "</div></div></div>"
+    )
     st.markdown(html_combined, unsafe_allow_html=True)
 
 st.markdown("<br><hr>", unsafe_allow_html=True)
@@ -562,10 +559,11 @@ with cctv_col2:
     cctv_pop = st.popover("📹 सुरक्षा कॅमेरे पहा", use_container_width=True)
 
 with cctv_pop:
-    # ⬅️ डॅशबोर्डवर परत जा बटण
-    st.button("⬅️ डॅशबोर्डवर परत जा", key="close_cctv", use_container_width=True)
-    st.markdown("<p style='text-align:center; font-size:10px; color:#888;'>(किंवा पॉपअपच्या बाहेर कुठेही क्लिक करा)</p>", unsafe_allow_html=True)
-    
+    # ⬅️ डॅशबोर्डवर परत जा बटण (सुधारित)
+    if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_cctv_btn", use_container_width=True):
+        try: st.rerun()
+        except: st.experimental_rerun()
+        
     st.markdown("<h4 style='color: #1e3c72; text-align: center; margin-bottom: 15px;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h4>", unsafe_allow_html=True)
     placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
     recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
@@ -622,9 +620,10 @@ else:
         
         with p_col2:
             with st.popover("📅 पंचांग", help="विस्तृत पंचांग आणि वेळा पहा"):
-                # ⬅️ डॅशबोर्डवर परत जा बटण
-                st.button("⬅️ डॅशबोर्डवर परत जा", key="close_panchang", use_container_width=True)
-                st.markdown("<p style='text-align:center; font-size:10px; color:#888;'>(किंवा पॉपअपच्या बाहेर कुठेही क्लिक करा)</p>", unsafe_allow_html=True)
+                # ⬅️ डॅशबोर्डवर परत जा बटण (सुधारित)
+                if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_panchang_btn", use_container_width=True):
+                    try: st.rerun()
+                    except: st.experimental_rerun()
                 
                 st.markdown("<h5 style='text-align: center; color: #e67e22;'>🕉️ विस्तृत पंचांग</h5>", unsafe_allow_html=True)
                 
