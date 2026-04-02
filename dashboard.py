@@ -448,10 +448,9 @@ with col_right:
         with sc2:
             report_pop = st.popover("📊 सोलर रिपोर्ट", use_container_width=True)
             with report_pop:
-                # ⬅️ डॅशबोर्डवर परत जा बटण (सुधारित)
+                # ⬅️ डॅशबोर्डवर परत जा बटण (DURUSTA KELELE)
                 if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_solar_btn", use_container_width=True):
-                    try: st.rerun()
-                    except: st.experimental_rerun()
+                    st.rerun()
 
                 st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
 
@@ -531,7 +530,7 @@ with col_left:
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
 
-    # ✨ अंडरग्राउंड टाकी आणि गार्डन शेजारी-शेजारी (Zero Indentation - No Code Block Issue)
+    # ✨ अंडरग्राउंड टाकी आणि गार्डन शेजारी-शेजारी (DURUSTA KELELE Inline String)
     garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
 
     html_combined = (
@@ -559,10 +558,9 @@ with cctv_col2:
     cctv_pop = st.popover("📹 सुरक्षा कॅमेरे पहा", use_container_width=True)
 
 with cctv_pop:
-    # ⬅️ डॅशबोर्डवर परत जा बटण (सुधारित)
+    # ⬅️ डॅशबोर्डवर परत जा बटण (DURUSTA KELELE)
     if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_cctv_btn", use_container_width=True):
-        try: st.rerun()
-        except: st.experimental_rerun()
+        st.rerun()
         
     st.markdown("<h4 style='color: #1e3c72; text-align: center; margin-bottom: 15px;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h4>", unsafe_allow_html=True)
     placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
@@ -620,10 +618,9 @@ else:
         
         with p_col2:
             with st.popover("📅 पंचांग", help="विस्तृत पंचांग आणि वेळा पहा"):
-                # ⬅️ डॅशबोर्डवर परत जा बटण (सुधारित)
+                # ⬅️ डॅशबोर्डवर परत जा बटण (DURUSTA KELELE)
                 if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_panchang_btn", use_container_width=True):
-                    try: st.rerun()
-                    except: st.experimental_rerun()
+                    st.rerun()
                 
                 st.markdown("<h5 style='text-align: center; color: #e67e22;'>🕉️ विस्तृत पंचांग</h5>", unsafe_allow_html=True)
                 
