@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Deogirkar Smart Home", layout="wide")
 
 # ---------------------------------------------------------
-# 📸 फोटो बेस-६४ मध्ये बदलण्याचे फंक्शन (Inline Image साठी)
+# 📸 फोटो बेस-६४ मध्ये बदलण्याचे फंक्शन
 # ---------------------------------------------------------
 def get_base64_image(image_path):
     try:
@@ -113,7 +113,7 @@ def get_panchang_details(selected_date):
     }
 
 # ---------------------------------------------------------
-# 🔐 १. Solarman API सुरक्षित टोकन मिळवणे
+# 🔐 १. Solarman API 
 # ---------------------------------------------------------
 def get_solarman_token():
     try:
@@ -123,7 +123,6 @@ def get_solarman_token():
         raw_password = st.secrets["sofar"]["password"]
 
         hashed_password = hashlib.sha256(raw_password.encode('utf-8')).hexdigest().lower()
-
         url = f"https://globalapi.solarmanpv.com/account/v1.0/token?appId={app_id}&language=en"
         payload = {"appSecret": app_secret, "email": email, "password": hashed_password}
 
@@ -131,13 +130,12 @@ def get_solarman_token():
         data = response.json()
 
         if data.get("success"): return data.get("access_token")
-        else: st.error(f"⚠️ API Error: {data.get('msg')}"); return None
+        else: return None
     except Exception as e:
-        st.error(f"⚠️ कनेक्शनमध्ये अडचण (Secrets फाईल तपासा): {e}")
         return None
 
 # ---------------------------------------------------------
-# ☀️ २. इन्व्हर्टरचा Live Data मिळवण्याचे फंक्शन
+# ☀️ २. इन्व्हर्टरचा Live Data
 # ---------------------------------------------------------
 def fetch_live_solar_data():
     token = get_solarman_token()
@@ -151,23 +149,14 @@ def fetch_live_solar_data():
         res_list = requests.post(url_list, headers=headers, json={"page": 1, "size": 10}, timeout=10)
         station_data = res_list.json()
         
-        if not station_data.get("success") or not station_data.get("stationList"):
-            st.error("⚠️ Solarman खात्यावर कोणताही प्लांट जोडलेला आढळला नाही.")
-            return None
+        if not station_data.get("success") or not station_data.get("stationList"): return None
             
         station_info = station_data["stationList"][0]
         station_id = station_info["id"]
         
         st.session_state.debug_station_data = station_info
-        
         network_status = station_info.get("networkStatus", "UNKNOWN")
-        daily_energy = float(
-            station_info.get("generationToday", 
-            station_info.get("dailyEnergy", 
-            station_info.get("todayGeneration", 
-            station_info.get("todayEnergy", 
-            station_info.get("dailyGeneration", 0.0)))))
-        )
+        daily_energy = float(station_info.get("generationToday", station_info.get("dailyEnergy", station_info.get("todayGeneration", station_info.get("todayEnergy", station_info.get("dailyGeneration", 0.0))))))
         
         url_realtime = f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en"
         res_realtime = requests.post(url_realtime, headers=headers, json={"stationId": station_id}, timeout=10)
@@ -199,16 +188,11 @@ def fetch_live_solar_data():
             live_data["network_status"] = network_status 
             live_data["history"] = history_data
             return live_data
-        else:
-            st.error("⚠️ लाईव्ह डेटा मिळवण्यात अडचण आली.")
-            return None
-            
-    except Exception as e:
-        st.error(f"⚠️ डेटा फेचिंग एरर: {e}")
-        return None
+        else: return None
+    except Exception as e: return None
 
 # ---------------------------------------------------------
-# ३. जुने CSS (फक्त ॲनिमेशन्स आणि बॅनर)
+# ३. अतिशय साधा आणि सुरक्षित CSS
 # ---------------------------------------------------------
 css = """
 <style>
@@ -293,12 +277,11 @@ with st.sidebar:
                 st.error("डेटा मिळाला नाही.")
 
 # ---------------------------------------------------------
-# ६. टाक्यांचे डिझाईन (जुने डिझाईन + नवीन पाण्याचा रंग)
+# ६. टाक्यांचे डिझाईन (3D Water Gradient सह)
 # ---------------------------------------------------------
 def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     percentage = min(int((level_cm / 100) * 100), 100)
     
-    # फक्त पाण्याचा बदललेला रंग (3D Gradient)
     water_grad = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)" if tank_type == "overhead" else "linear-gradient(to bottom, #0077b6 0%, #023e8a 100%)"
     dark_wave_color = "%23005b96" if tank_type == "overhead" else "%23023e8a"
     
@@ -317,7 +300,7 @@ def get_tank_html(tank_name, level_cm, tank_type="overhead", inlets=[]):
     html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div><div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);'>{tank_name}</div></div>"
     return html
 
-# ७. स्टार्टर पॅनेल डिझाईन (जुने)
+# ७. स्टार्टर पॅनेल डिझाईन
 def render_compact_starter(col_obj, pump_name, state_key):
     is_on = st.session_state[state_key]
     needle_rot = -12 if is_on else -45
@@ -346,7 +329,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
-# 🎛️ ८. ॲनिमेटेड वाल्व्ह डिझाईन (जुने)
+# 🎛️ ८. ॲनिमेटेड वाल्व्ह डिझाईन
 def render_animated_valve(col_obj, valve_name, state_key):
     is_on = st.session_state[state_key]
     handle_rot = 90 if is_on else 0 
@@ -391,7 +374,7 @@ ug_pouring_from_tanker = sim_tanker
 garden_watering = ug_pump and not valve_t1 and not valve_t2
 is_any_water_pouring = tank1_pouring or tank2_pouring or ug_pouring_from_bw or ug_pouring_from_tanker or garden_watering
 
-# १०. मुख्य डॅशबोर्ड लेआउट (जुने [1.5, 1] Layout)
+# १०. मुख्य डॅशबोर्ड लेआउट
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
@@ -402,7 +385,7 @@ with col_right:
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली (Burglar Alarm)</h5></div>", unsafe_allow_html=True)
         st.session_state.alarm_armed = st.toggle("🚨 अलार्म सिस्टीम (Arm/Disarm)", value=st.session_state.alarm_armed)
 
-    # ☀️ सोलर ऊर्जा (जुने डिझाईन)
+    # ☀️ सोलर ऊर्जा
     with st.container(border=True):
         current_power = st.session_state.real_solar_power
         daily_kwh = st.session_state.real_solar_daily
@@ -448,6 +431,9 @@ with col_right:
         with sc2:
             report_pop = st.popover("📊 सोलर रिपोर्ट", use_container_width=True)
             with report_pop:
+                # ⬅️ डॅशबोर्डवर परत जा बटण
+                if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_solar", use_container_width=True): st.rerun()
+
                 st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
 
                 tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
@@ -469,12 +455,10 @@ with col_right:
                 co2_tons = 0.000793 * total_kwh
                 trees_planted = int((total_kwh * 0.997) / 18.3)
                 
-                # ✨ एकूण दिवस (Running Days) - २१ जुलै २०२४ पासून
                 start_date = datetime.fromtimestamp(1721561718)
                 running_days = (datetime.now() - start_date).days if st.session_state.is_solar_live else 618 
                 profit_inr = int(total_kwh * 7.5) 
 
-                # जुने रिपोर्ट बॉक्सेस डिझाईन
                 card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
                 
                 col_a, col_b = st.columns(2)
@@ -528,28 +512,48 @@ with col_left:
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
 
+    # ✨ अंडरग्राउंड टाकी आणि गार्डन शेजारी-शेजारी (Side-by-Side)
+    garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
+
     st.markdown(f"""
     <div style="display: flex; justify-content: space-around; flex-wrap: nowrap; width: 100%; gap: 10px;">
         <div style="flex: 1; display: flex; justify-content: center;">{html_t1}</div>
         <div style="flex: 1; display: flex; justify-content: center;">{html_t2}</div>
     </div>
-    <div style="width: 100%; margin-top: 15px;">
-        {html_ug}
+    
+    <div style="display: flex; justify-content: space-around; flex-wrap: nowrap; width: 100%; gap: 15px; margin-top: 15px; align-items: stretch;">
+        <div style="flex: 1; display: flex; justify-content: center; width: 100%;">
+            {html_ug}
+        </div>
+        <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding-top: 50px; width: 100%;">
+            <div style='width: 100%; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; padding: 25px 10px; text-align: center; position: relative;'>
+                {garden_active_html}
+                <div style='font-size: 40px;'>🌳🏡🌿</div>
+                <h4 style='color: #2e7d32; margin: 10px 0 0 0;'>गार्डन / झाडे</h4>
+                <p style='font-size: 12px; color: #555; margin: 5px 0 0 0;'>अंडरग्राउंड टाकीतून पाणी</p>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #00b4d8 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
-    st.markdown(f"<div style='margin-top: 20px; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; padding: 15px; text-align: center; position: relative;'>{garden_active_html}<div style='font-size: 40px;'>🌳🏡🌿</div><h4 style='color: #2e7d32; margin: 5px 0 0 0;'>गार्डन / झाडे</h4><p style='font-size: 12px; color: #555; margin: 0;'>अंडरग्राउंड टाकीतून पाणी</p></div>", unsafe_allow_html=True)
-
 st.markdown("<br><hr>", unsafe_allow_html=True)
-st.markdown("<h3 style='color: #1e3c72; text-align: center;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h3>", unsafe_allow_html=True)
 
-placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
-recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
+# 📹 सुरक्षा कॅमेरे (आता पॉपअप मध्ये)
+cctv_col1, cctv_col2, cctv_col3 = st.columns([1.5, 1, 1.5])
+with cctv_col2:
+    cctv_pop = st.popover("📹 सुरक्षा कॅमेरे पहा", use_container_width=True)
 
-cam_col1, cam_col2 = st.columns(2)
-with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार (Main Gate)</div>", unsafe_allow_html=True)
-with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
+with cctv_pop:
+    # ⬅️ डॅशबोर्डवर परत जा बटण
+    if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_cctv", use_container_width=True): st.rerun()
+    
+    st.markdown("<h4 style='color: #1e3c72; text-align: center; margin-bottom: 15px;'>📹 सुरक्षा कॅमेरे (Live CCTV Feed)</h4>", unsafe_allow_html=True)
+    placeholder_style = "background-color: #111; height: 250px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #888; font-family: monospace; border: 2px solid #444; position: relative; text-align: center;"
+    recording_dot = "<div style='position: absolute; top: 15px; right: 15px; width: 12px; height: 12px; background-color: #ff3333; border-radius: 50%; animation: pulseRed 1s infinite; box-shadow: 0 0 8px #ff3333;'></div>"
+
+    cam_col1, cam_col2 = st.columns(2)
+    with cam_col1: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 1<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 मुख्य प्रवेशद्वार (Main Gate)</div>", unsafe_allow_html=True)
+    with cam_col2: st.markdown(f"<div style='{placeholder_style}'>{recording_dot}Camera 2<br><br>Connecting to RTSP Stream...</div><div style='text-align: center; font-weight: bold; margin-top: 5px; color: #555;'>📍 पार्किंग (Parking Area)</div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # 📢 ११. सायरन आणि 🕉️ कॉम्पेक्ट पंचांग पट्टी (Popup सह)
@@ -599,6 +603,9 @@ else:
         
         with p_col2:
             with st.popover("📅 पंचांग", help="विस्तृत पंचांग आणि वेळा पहा"):
+                # ⬅️ डॅशबोर्डवर परत जा बटण
+                if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_panchang", use_container_width=True): st.rerun()
+                
                 st.markdown("<h5 style='text-align: center; color: #e67e22;'>🕉️ विस्तृत पंचांग</h5>", unsafe_allow_html=True)
                 
                 selected_date = st.date_input("तारीख निवडा:", today_dt)
