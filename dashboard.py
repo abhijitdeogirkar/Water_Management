@@ -21,13 +21,12 @@ except:
     st.error("⚠️ Google Web App URL सापडली नाही. कृपया GitHub च्या Secrets मध्ये ती जोडल्याची खात्री करा.")
 
 # ---------------------------------------------------------
-# 💧 गुगल शीटवरून डेटा आणणे आणि गणिते (Tank 1 - Underground)
+# 💧 गुगल शीटवरून डेटा आणणे आणि गणिते (TANK 1 साठी)
 # ---------------------------------------------------------
 def get_tank_distance_from_google():
     if not GOOGLE_WEB_APP_URL:
         return None
     try:
-        # '?action=read' पाठवल्यास Google Sheet शेवटचा डेटा परत करेल
         response = requests.get(GOOGLE_WEB_APP_URL + "?action=read", timeout=5)
         data = response.json()
         if data and 'distance' in data and data['distance'] != "":
@@ -35,22 +34,28 @@ def get_tank_distance_from_google():
         return None
     except: return None
 
-def calc_underground_tank_data(sensor_distance_cm):
+def calc_tank1_data(sensor_distance_cm):
     if sensor_distance_cm is None: return 0, 0.0, 0.0
     
-    # --- टाकीची मापे ---
-    max_water_height = 100.0      # तळापासून ओव्हरफ्लो पाईपपर्यंतची उंची (cm)
-    sensor_total_height = 125.0   # सेन्सर तळापासून किती उंचीवर आहे (cm)
-    base_area = 200.0 * 400.0     # लांबी x रुंदी (sq.cm)
+    # =========================================================
+    # ⚙️ टाकी क्रमांक १ चे डायमेन्शन्स (मापे) येथे बदला! ⚙️
+    # =========================================================
+    TANK_LENGTH_CM = 200.0    # टाकीची लांबी (cm)
+    TANK_WIDTH_CM = 200.0     # टाकीची रुंदी (cm)
+    MAX_WATER_HEIGHT = 100.0  # तळापासून ओव्हरफ्लो पाईपपर्यंतची उंची (cm)
+    SENSOR_GAP_CM = 25.0      # ओव्हरफ्लो पाईपच्या वर सेन्सर किती अंतरावर आहे? (cm)
     
-    # --- पाण्याची सध्याची उंची मोजणे ---
+    base_area = TANK_LENGTH_CM * TANK_WIDTH_CM
+    sensor_total_height = MAX_WATER_HEIGHT + SENSOR_GAP_CM
+    
+    # पाण्याची उंची = सेन्सरची एकूण उंची - सेन्सरने मोजलेले रिकामे अंतर
     water_level_cm = sensor_total_height - sensor_distance_cm
     
+    # व्हॅलिडेशन (पाणी उंचीच्या बाहेर जाऊ नये)
     if water_level_cm < 0: water_level_cm = 0
-    if water_level_cm > max_water_height: water_level_cm = max_water_height
+    if water_level_cm > MAX_WATER_HEIGHT: water_level_cm = MAX_WATER_HEIGHT
     
-    # --- टक्केवारी आणि लिटर ---
-    percentage = int((water_level_cm / max_water_height) * 100)
+    percentage = int((water_level_cm / MAX_WATER_HEIGHT) * 100)
     liters = (base_area * water_level_cm) / 1000.0
     
     return percentage, liters, water_level_cm
@@ -193,9 +198,13 @@ for key, default in [('alarm_armed', False), ('real_solar_power', 0.0), ('real_s
 def set_pump_state(key, state): st.session_state[key] = state
 
 # ---------------------------------------------------------
-# ⚙️ ५. साईडबार
+# ⚙️ ५. साईडबार (येथे ऑटो-रिफ्रेश जोडले आहे)
 # ---------------------------------------------------------
 with st.sidebar:
+    st.markdown("### 🔄 लाईव्ह सिस्टीम")
+    auto_refresh = st.toggle("🟢 ऑटो-रिफ्रेश (Live Sync)", value=True, help="हे चालू ठेवल्यास पाण्याचे आकडे दर ५ सेकंदांनी आपोआप अपडेट होतील.")
+    
+    st.markdown("---")
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
     sim_tanker = st.checkbox("🚚 टँकरचे पाणी चालू करा")
     st.markdown("---")
@@ -204,7 +213,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("#### 🔌 खऱ्या सोलरचे API कनेक्शन")
     
-    if st.button("🔄 लाईव्ह डेटा रिफ्रेश करा", type="primary"):
+    if st.button("🔄 सोलर डेटा रिफ्रेश करा", type="primary"):
         with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत आहे..."):
             data = fetch_live_solar_data()
             if data:
@@ -283,7 +292,7 @@ col_left, col_right = st.columns([1.5, 1])
 with col_right:
     status_board = st.empty()
 
-    # 🛡️ सुरक्षा प्रणाली (यातच कॅमेरे आहेत)
+    # 🛡️ सुरक्षा प्रणाली
     with st.container(border=True):
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली</h5></div>", unsafe_allow_html=True)
         sec_c1, sec_c2 = st.columns([1.5, 1], vertical_alignment="center")
@@ -309,7 +318,7 @@ with col_right:
 
         if not st.session_state.is_solar_live: solar_glow, line_style, status_color, status_text, data_source_badge = "border: 1px solid #ccc;", "background-color: #bdc3c7;", "#555", "🔄 कृपया 'लाईव्ह डेटा रिफ्रेश करा' बटण दाबा", "<span style='background-color: #9e9e9e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>⏳ PENDING</span>"
         elif is_offline: solar_glow, line_style, status_color, status_text, data_source_badge = "border: 1px solid #95a5a6;", "background-color: #bdc3c7;", "#7f8c8d", "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (रात्र)", "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
-        else: solar_glow, line_style, status_color, status_text, data_source_badge = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;", "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);", "#2e7d32" if is_generating else "#c62828", "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती सध्या 0 W alert", "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
+        else: solar_glow, line_style, status_color, status_text, data_source_badge = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;", "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);", "#2e7d32" if is_generating else "#c62828", "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती सध्या 0 W आहे", "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
 
         solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/></svg>"""
         grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
@@ -331,24 +340,6 @@ with col_right:
                 with tab_month: st.bar_chart(st.session_state.chart_month, height=150)
                 with tab_year: st.bar_chart(st.session_state.chart_year, height=150)
                 with tab_total: st.line_chart(st.session_state.chart_total, height=150)
-                daily_production_kwh = st.session_state.real_solar_daily
-                report_daily_display = f"{int(daily_production_kwh * 1000)} Wh" if daily_production_kwh < 1.0 else f"{daily_production_kwh:.2f} kWh"
-                st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
-                st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
-                
-                total_kwh = st.session_state.real_solar_total
-                start_date = datetime.fromtimestamp(1721561718)
-                running_days = (datetime.now() - start_date).days if st.session_state.is_solar_live else 618 
-                
-                card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🕐 Running Days</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{running_days}<span style='font-size: 12px; font-weight: normal;'>day</span></div></div>", unsafe_allow_html=True)
-                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>💰 Profit Estimate</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>₹ {int(total_kwh * 7.5):,} <span style='font-size: 12px; font-weight: normal;'>INR</span></div></div>", unsafe_allow_html=True)
-                with col_b:
-                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>⚡ Total Production</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{total_kwh / 1000.0:.2f}<span style='font-size: 12px; font-weight: normal;'>MWh</span></div></div>", unsafe_allow_html=True)
-                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>☁️ CO2 Reduction</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{0.000793 * total_kwh:.2f}<span style='font-size: 12px; font-weight: normal;'>t</span></div></div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🍃 Equivalent tree planting</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{int((total_kwh * 0.997) / 18.3)}<span style='font-size: 12px; font-weight: normal;'>trees</span></div></div>", unsafe_allow_html=True)
 
     # ⚡ कंट्रोल पॅनल
     with st.container(border=True):
@@ -375,7 +366,7 @@ with col_right:
         else:
             if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
             if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
-            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
+            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू মাঠে आहे.")
             if sim_tanker: status_msgs.append("🚚 टँकरद्वारे पाणी येत आहे.")
         if tank1_pouring: status_msgs.append("🔹 'Tank 1' मध्ये पाणी भरत आहे.")
         if tank2_pouring: status_msgs.append("🔹 'Tank 2' मध्ये पाणी भरत आहे.")
@@ -386,19 +377,18 @@ with col_right:
         st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 with col_left:
-    # 🌟 Google Sheet वरून डेटा आणणे आणि गणित करणे
+    # 🌟 Google Sheet वरून डेटा आणणे आणि TANK 1 चे गणित करणे
     dist_from_gs = get_tank_distance_from_google()
-    live_pct, live_liters, live_level_cm = calc_underground_tank_data(dist_from_gs)
+    live_pct, live_liters, live_level_cm = calc_tank1_data(dist_from_gs)
     
-    # मॅन्युअल रिफ्रेश बटण
-    if st.button("🔄 पाण्याची पातळी रिफ्रेश करा", use_container_width=True):
-        pass
+    # मॅन्युअल रिफ्रेश बटण काढून टाकले आहे, कारण आता सिस्टीम 'ऑटो-रिफ्रेश' आहे.
     
-    html_t1 = get_tank_html("Tank 1", 45, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
+    # ⬇️ इथे Tank 1 ला लाईव्ह डेटा जोडला आहे
+    html_t1 = get_tank_html(f"Tank 1 ({live_pct}%)", live_pct, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
     html_t2 = get_tank_html("Tank 2", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
     
-    # ⬇️ इथे तळमजला टाकीचा लाईव्ह डेटा जोडला आहे
-    html_ug = get_tank_html(f"Underground ({live_pct}%)", live_pct, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
+    # अंडरग्राउंड टाकी आता स्थिर (Static) ठेवली आहे
+    html_ug = get_tank_html("Underground Tank", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
 
     garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
 
@@ -408,11 +398,11 @@ with col_left:
         f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t2}</div>"
         "</div>"
         
-        # लाईव्ह डेटा दाखवण्यासाठी एक छोटी पट्टी
+        # लाईव्ह डेटा दाखवण्यासाठी एक छोटी पट्टी (Tank 1 साठी)
         "<div style='background-color: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; border: 1px solid #90caf9;'>"
-        f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>सेन्सरचे अंतर</div><div style='font-weight: bold; color: #1565c0;'>{dist_from_gs if dist_from_gs is not None else 0} cm</div></div>"
-        f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>पाण्याची उंची</div><div style='font-weight: bold; color: #1565c0;'>{live_level_cm:.1f} cm</div></div>"
-        f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>एकूण पाणी</div><div style='font-weight: bold; font-size: 18px; color: #d32f2f;'>{live_liters:,.0f} Liters</div></div>"
+        f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>Tank 1 सेन्सर अंतर</div><div style='font-weight: bold; color: #1565c0;'>{dist_from_gs if dist_from_gs is not None else 0} cm</div></div>"
+        f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>Tank 1 पाण्याची उंची</div><div style='font-weight: bold; color: #1565c0;'>{live_level_cm:.1f} cm</div></div>"
+        f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>Tank 1 एकूण पाणी</div><div style='font-weight: bold; font-size: 18px; color: #d32f2f;'>{live_liters:,.0f} Liters</div></div>"
         "</div>"
 
         "<div style='display: flex; justify-content: space-around; width: 100%; gap: 15px; align-items: flex-end;'>"
@@ -428,7 +418,7 @@ with col_left:
     st.markdown(html_combined, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 📢 ११. सायरन आणि 🕉️ कॉम्पेक्ट पंचांग पट्टी (Popup सह)
+# 📢 ११. सायरन आणि 🕉️ कॉम्पेक्ट पंचांग पट्टी 
 # ---------------------------------------------------------
 if trigger_siren:
     top_banner.markdown("<div class='flashing-alert'><h1 style='color: white; margin: 0; font-size: 36px; font-weight: 900; text-shadow: 2px 2px 5px black;'>🚨 सावधान! घरात घुसखोर आढळला! 🚨</h1></div>", unsafe_allow_html=True)
@@ -479,3 +469,10 @@ if alert_to_speak == "": st.session_state.last_speech = ""
 elif alert_to_speak != st.session_state.last_speech:
     st.session_state.last_speech = alert_to_speak
     components.html(f"<script>var msg = new SpeechSynthesisUtterance('{alert_to_speak}'); msg.lang = 'mr-IN'; msg.rate = 0.95; window.speechSynthesis.speak(msg);</script>", height=0, width=0)
+
+# ---------------------------------------------------------
+# १२. ऑटो-रिफ्रेश लॉजिक (Live Dashboard)
+# ---------------------------------------------------------
+if auto_refresh:
+    time.sleep(5)  # दर ५ सेकंदांनी गुगल शीट तपासेल (जेणेकरून सर्व्हरवर लोड येणार नाही)
+    st.rerun()     # ॲप स्वतःहून रिफ्रेश करेल
