@@ -352,8 +352,8 @@ with col_left:
         live_pct, live_liters, live_level_cm = calc_tank1_data(dist_from_gs)
         
         # डमी डेटा (इतर टाक्यांसाठी)
-        t2_liters = (200.0 * 200.0 * 60.0) / 1000.0
-        ug_liters = (200.0 * 400.0 * 75.0) / 1000.0
+        t2_liters = (200.0 * 100.0 * 60.0) / 1000.0
+        ug_liters = (200.0 * 300.0 * 75.0) / 1000.0
 
         # ✨ 40:60 चे अचूक प्रमाण (224px आणि 336px) ✨
         html_t1 = get_tank_html("वरच्या मजल्या करिता", live_pct, live_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}], max_w="224px")
