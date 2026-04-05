@@ -57,17 +57,11 @@ def calc_tank1_data(sensor_distance_cm):
     
     return percentage, liters, water_level_cm
 
-# ---------------------------------------------------------
-# 📸 फोटो बेस-६४ मध्ये बदलण्याचे फंक्शन
-# ---------------------------------------------------------
 def get_base64_image(image_path):
     try:
         with open(image_path, "rb") as img_file: return base64.b64encode(img_file.read()).decode()
     except: return ""
 
-# ---------------------------------------------------------
-# 🕉️ संपूर्ण पंचांग
-# ---------------------------------------------------------
 def get_panchang_details(selected_date):
     observer = ephem.Observer()
     observer.lat, observer.lon, observer.elevation = '20.1059', '77.1358', 414
@@ -118,9 +112,6 @@ def get_panchang_details(selected_date):
         "is_chaturthi": cur_tithi in [4, 19], "is_ekadashi": cur_tithi in [11, 26]
     }
 
-# ---------------------------------------------------------
-# 🔐 १. Solarman API
-# ---------------------------------------------------------
 def get_solarman_token():
     try:
         app_id, app_secret, email, raw_password = st.secrets["sofar"]["app_id"], st.secrets["sofar"]["app_secret"], st.secrets["sofar"]["email"], st.secrets["sofar"]["password"]
@@ -139,14 +130,13 @@ def fetch_live_solar_data():
         if not res_list.get("success") or not res_list.get("stationList"): return None
         station_id = res_list["stationList"][0]["id"]
         daily_energy = float(res_list["stationList"][0].get("generationToday", res_list["stationList"][0].get("dailyEnergy", 0.0)))
-        
         live_data = requests.post(f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en", headers=headers, json={"stationId": station_id}, timeout=10).json()
         if live_data.get("success"): live_data.update({"custom_daily_energy": daily_energy, "network_status": res_list["stationList"][0].get("networkStatus", "UNKNOWN")}); return live_data
         return None
     except: return None
 
 # ---------------------------------------------------------
-# ३. CSS (येथे मोबाईलसाठी Custom Flexbox CSS जोडले आहे)
+# ३. CSS (मोबाईलसाठी Tiny Components चे CSS)
 # ---------------------------------------------------------
 css = """
 <style>
@@ -158,39 +148,44 @@ css = """
 .stButton button { font-weight: bold !important; border-radius: 6px !important; border: 2px solid #555 !important; }
 .panchang-strip { background-color: #fffde7; border-radius: 6px; padding: 8px 15px; border: 1px solid #fbc02d; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-/* ✨ मोबाईल UI साठी अत्यंत महत्त्वाचे CSS (Start) ✨ */
+/* ✨ मोबाईल UI साठी Tiny CSS ✨ */
 @media (max-width: 768px) {
-    /* 3-कॉलम (स्टार्टर्स आणि वाल्व्ह) आडवे ठेवणे */
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(3)) {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 5px !important;
-        overflow-x: hidden;
-    }
-    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(3)) > div[data-testid="column"] {
-        width: 33.33% !important;
-        min-width: 30% !important;
-    }
-    /* 2-कॉलम (ON/OFF बटणे) आडवे ठेवणे */
-    div[data-testid="stHorizontalBlock"]:has(button) {
+    /* स्टार्टर्स आणि वाल्व्ह एका रेषेत आणणे */
+    div[data-testid="stHorizontalBlock"]:has(.starter-card),
+    div[data-testid="stHorizontalBlock"]:has(.valve-card) {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         gap: 2px !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(button) > div[data-testid="column"] {
+    div[data-testid="stHorizontalBlock"]:has(.starter-card) > div[data-testid="column"],
+    div[data-testid="stHorizontalBlock"]:has(.valve-card) > div[data-testid="column"] {
+        width: 33.33% !important;
+        min-width: 30% !important;
+        padding: 0 2px !important;
+    }
+    /* ON/OFF बटणे लहान आणि आडवी करणे */
+    div[data-testid="stVerticalBlock"]:has(.starter-card) div[data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 2px !important;
+    }
+    div[data-testid="stVerticalBlock"]:has(.starter-card) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         width: 50% !important;
         min-width: 45% !important;
+        padding: 0 !important;
     }
-    /* मोबाईलवर बटणे लहान करणे */
-    .stButton button {
-        padding: 2px 4px !important;
-        font-size: 9px !important;
-        min-height: 28px !important;
+    div[data-testid="stVerticalBlock"]:has(.starter-card) button {
+        padding: 0px 2px !important;
+        font-size: 8px !important;
+        min-height: 20px !important;
     }
-    /* मोबाईलवर फॉन्ट लहान करणे */
-    .mobile-shrink-text { font-size: 9px !important; }
+    /* SVG आणि कार्ड्स अतिशय लहान (Tiny) करणे */
+    .starter-card, .valve-card { padding: 3px !important; margin-bottom: 2px !important; }
+    .starter-card svg { max-height: 30px !important; }
+    .valve-card svg { max-height: 45px !important; width: auto !important; }
+    .mobile-shrink-text { font-size: 8px !important; }
+    .valve-status-text { font-size: 10px !important; }
 }
-/* ✨ मोबाईल UI साठी अत्यंत महत्त्वाचे CSS (End) ✨ */
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -205,7 +200,7 @@ for key, default in [('alarm_armed', False), ('real_solar_power', 0.0), ('real_s
 
 def set_pump_state(key, state): st.session_state[key] = state
 
-def get_tank_html(tank_name, percentage, tank_type="overhead", inlets=[]):
+def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[]):
     water_grad = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)" if tank_type == "overhead" else "linear-gradient(to bottom, #0077b6 0%, #023e8a 100%)"
     dark_wave_color = "%23005b96" if tank_type == "overhead" else "%23023e8a"
     tank_height, tank_width = ("160px", "100%") if tank_type == "underground" else ("220px", "160px")
@@ -218,10 +213,12 @@ def get_tank_html(tank_name, percentage, tank_type="overhead", inlets=[]):
         active_pour = f"<div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.3s infinite linear; z-index: 1;'></div>" if inlet['active'] else ""
         pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
-    # UI अलाईनमेंटसाठी नावाची पट्टी
+    # टाकीच्या आत लिटर आणि टक्केवारी दाखवणे
+    water_text = f"{liters:,.0f} L<br><span style='font-size:14px;'>({percentage}%)</span>"
+    
     name_strip = f"<div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); white-space: nowrap;'>{tank_name}</div>"
     
-    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 22px; text-shadow: 1px 1px 3px black; z-index: 11;'>{percentage}%</span></div></div>{name_strip}</div>"
+    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px black; z-index: 11; text-align: center; line-height: 1.2;'>{water_text}</span></div></div>{name_strip}</div>"
     return html
 
 def render_compact_starter(col_obj, pump_name, state_key):
@@ -230,8 +227,7 @@ def render_compact_starter(col_obj, pump_name, state_key):
     on_glow = "background: radial-gradient(circle, #00ff00, #004d00); box-shadow: 0 0 10px #00ff00; color: white; border: 1px solid #00ff00;" if is_on else "background: #111; color: #555; border: 1px solid #222;"
     off_glow = "background: radial-gradient(circle, #ff0000, #4d0000); box-shadow: 0 0 10px #ff0000; color: white; border: 1px solid #ff0000;" if not is_on else "background: #111; color: #555; border: 1px solid #222;"
 
-    # मोबाईलसाठी कॉम्पॅक्ट HTML
-    html = f"""<div style="background-color: #1c1c1c; padding: 5px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 5px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
+    html = f"""<div class="starter-card" style="background-color: #1c1c1c; padding: 5px; border-radius: 8px; border: 2px solid #333; text-align: center; margin-bottom: 5px; box-shadow: 3px 3px 10px rgba(0,0,0,0.3);">
     <div class="mobile-shrink-text" style="color: #ddd; font-weight: bold; font-size: 11px; margin-bottom: 5px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{pump_name}</div>
     <div style="background-color: #f9f9f9; border-radius: 4px; padding: 2px; margin-bottom: 8px; border: 1px solid #aaa; position: relative; height: auto;">
     <svg width="100%" height="auto" viewBox="0 0 100 65" style="max-height: 40px;"><path d="M 15 45 A 40 40 0 0 1 85 45" fill="none" stroke="#222" stroke-width="1.5"/><text x="15" y="58" font-size="10" text-anchor="middle" font-weight="bold">0</text><text x="50" y="60" font-size="14" text-anchor="middle" font-weight="bold">A</text><text x="85" y="58" font-size="10" text-anchor="middle" font-weight="bold">30</text><line x1="50" y1="58" x2="50" y2="12" stroke="#222" stroke-width="2.5" transform="rotate({needle_rot} 50 58)" style="transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);"/><circle cx="50" cy="58" r="3" fill="black"/></svg></div>
@@ -248,11 +244,10 @@ def render_animated_valve(col_obj, valve_name, state_key):
     handle_rot = 90 if is_on else 0 
     handle_color = "#2ecc71" if is_on else "#e74c3c"
     status_text = "ON" if is_on else "OFF"
-    # मोबाईलसाठी SVG Size कमी केली आहे
-    html = f"""<div style="text-align: center; margin-bottom: 5px;">
-    <div class="mobile-shrink-text" style="font-size: 11px; font-weight: bold; color: #333; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{valve_name}</div>
+    html = f"""<div class="valve-card" style="text-align: center; margin-bottom: 5px;">
+    <div class="mobile-shrink-text" style="font-size: 12px; font-weight: bold; color: #333; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{valve_name}</div>
     <svg width="100%" style="max-width: 50px; height: auto;" viewBox="0 0 60 90"><rect x="22" y="0" width="16" height="90" fill="#95a5a6" /><polygon points="15,25 45,25 50,45 45,65 15,65 10,45" fill="#bdc3c7" stroke="#7f8c8d" stroke-width="1.5"/><rect x="18" y="20" width="24" height="50" fill="#ecf0f1" rx="2" stroke="#7f8c8d" stroke-width="1"/><g transform="rotate({handle_rot} 30 45)" style="transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);"><path d="M 35 40 L 5 40 C 2 40 0 42 0 45 C 0 48 2 50 5 50 L 35 50 Z" fill="{handle_color}" /><circle cx="30" cy="45" r="6" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1"/><circle cx="30" cy="45" r="2.5" fill="#7f8c8d" /></g></svg>
-    <div style="font-size: 13px; font-weight: 900; color: {handle_color}; margin-top: 2px;">{status_text}</div></div>"""
+    <div class="valve-status-text" style="font-size: 14px; font-weight: 900; color: {handle_color}; margin-top: 2px;">{status_text}</div></div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     col_obj.toggle(valve_name, key=state_key, label_visibility="collapsed")
 
@@ -321,7 +316,6 @@ else:
             st.markdown(f"<div style='text-align:center; font-size:14px; font-weight:bold; margin-bottom:10px;'>{selected_date.strftime('%d-%m-%Y')} ({sel_vaar})</div>", unsafe_allow_html=True)
             st.markdown(f"""<table style="width:100%; border-collapse: collapse; font-size: 13px;"><tr style="border-bottom: 2px solid #ddd; background-color: #f9f9f9;"><th style="padding: 6px; text-align: left; color:#555;">अंग</th><th style="padding: 6px; text-align: left; color:#555;">नाव</th><th style="padding: 6px; text-align: center; color:#555;">सुरुवात<br><span style="font-size:11px;">(दिनांक व वेळ)</span></th><th style="padding: 6px; text-align: center; color:#555;">समाप्ती<br><span style="font-size:11px;">(दिनांक व वेळ)</span></th></tr><tr style="border-bottom: 1px solid #eee;"><td style="padding: 6px;"><b>🌙 तिथी</b></td><td style="padding: 6px; color:#d35400;"><b>{sel_panchang['tithi']}</b></td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['t_start']}</td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['t_end']}</td></tr><tr style="border-bottom: 1px solid #eee;"><td style="padding: 6px;"><b>✨ नक्षत्र</b></td><td style="padding: 6px; color:#d35400;"><b>{sel_panchang['nakshatra']}</b></td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['n_start']}</td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['n_end']}</td></tr><tr style="border-bottom: 1px solid #eee;"><td style="padding: 6px;"><b>🧘 योग</b></td><td style="padding: 6px; color:#d35400;"><b>{sel_panchang['yoga']}</b></td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['y_start']}</td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['y_end']}</td></tr><tr><td style="padding: 6px;"><b>🚩 करण</b></td><td style="padding: 6px; color:#d35400;"><b>{sel_panchang['karana']}</b></td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['k_start']}</td><td style="padding: 6px; text-align: center; color:#444;">{sel_panchang['k_end']}</td></tr></table>""", unsafe_allow_html=True)
 
-
 col_left, col_right = st.columns([1.5, 1])
 
 with col_right:
@@ -347,7 +341,7 @@ with col_right:
         st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा</h5></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
 
-    # ⚡ कंट्रोल पॅनल (मोबाईलवर आडवे दिसण्यासाठी)
+    # ⚡ कंट्रोल पॅनल
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल पॅनल</h5></div>", unsafe_allow_html=True)
         sc1, sc2, sc3 = st.columns(3)
@@ -355,7 +349,7 @@ with col_right:
         render_compact_starter(sc2, "BW-1", "bw1_pump")
         render_compact_starter(sc3, "BW-2", "bw2_pump")
 
-    # 🎛️ वाल्व्ह पॅनल (मोबाईलवर आडवे दिसण्यासाठी)
+    # 🎛️ वाल्व्ह पॅनल
     with st.container(border=True):
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक) स्थिती</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
@@ -376,7 +370,7 @@ with col_right:
         st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 # =========================================================
-# ✨ द मॅजिक: फ्रॅगमेंट (Fragment) - जो फक्त स्वतःला रिफ्रेश करेल
+# ✨ फ्रॅगमेंट (लाईव्ह टँक डॅशबोर्ड)
 # =========================================================
 with col_left:
     @st.fragment(run_every="10s")
@@ -384,12 +378,16 @@ with col_left:
         dist_from_gs = get_tank_distance_from_google()
         live_pct, live_liters, live_level_cm = calc_tank1_data(dist_from_gs)
         
-        # १. टाक्यांची नवीन नावे
-        html_t1 = get_tank_html(f"वरच्या मजल्या करिता टाकी ({live_pct}%)", live_pct, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
-        html_t2 = get_tank_html("तळमजल्या करिता टाकी (60%)", 60, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
-        html_ug = get_tank_html("भूमिगत टाकी (75%)", 75, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
+        # डमी डेटा (इतर टाक्यांसाठी)
+        t2_liters = (200.0 * 200.0 * 60.0) / 1000.0
+        ug_liters = (200.0 * 400.0 * 75.0) / 1000.0
+
+        # नवीन नावे आणि आकडेवारी (लिटर आणि टक्केवारी आत दिसेल)
+        html_t1 = get_tank_html("वरच्या मजल्या करिता टाकी", live_pct, live_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
+        html_t2 = get_tank_html("तळमजल्या करिता टाकी", 60, t2_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
+        html_ug = get_tank_html("भूमिगत टाकी", 75, ug_liters, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
         
-        # २. गार्डनचे डिझाईन आणि परफेक्ट अलाईनमेंट (Alignment)
+        # गार्डन डिझाईन आणि परफेक्ट अलाईनमेंट
         garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
         garden_html = (
             "<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'>"
@@ -408,13 +406,6 @@ with col_left:
             f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t1}</div>"
             f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t2}</div>"
             "</div>"
-            
-            "<div style='background-color: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-around; border: 1px solid #90caf9;'>"
-            f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>सेन्सर अंतर</div><div style='font-weight: bold; color: #1565c0;'>{dist_from_gs if dist_from_gs is not None else 0} cm</div></div>"
-            f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>पाण्याची उंची</div><div style='font-weight: bold; color: #1565c0;'>{live_level_cm:.1f} cm</div></div>"
-            f"<div style='text-align: center;'><div style='font-size: 12px; color: #555;'>वरच्या टाकीतील पाणी</div><div style='font-weight: bold; font-size: 18px; color: #d32f2f;'>{live_liters:,.0f} Liters</div></div>"
-            "</div>"
-
             "<div style='display: flex; justify-content: space-around; width: 100%; gap: 15px; align-items: flex-end;'>"
             f"<div style='flex: 1; display: flex; justify-content: center; width: 100%;'>{html_ug}</div>"
             f"<div style='flex: 1; display: flex; justify-content: center; width: 100%;'>{garden_html}</div>"
