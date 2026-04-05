@@ -161,7 +161,7 @@ def fetch_live_solar_data():
     except: return None
 
 # ---------------------------------------------------------
-# ३. CSS (बटणे सर्वत्र लहान राहण्यासाठी)
+# ३. CSS
 # ---------------------------------------------------------
 css = """
 <style>
@@ -174,7 +174,6 @@ css = """
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
 .panchang-strip { background-color: #fffde7; border-radius: 6px; padding: 8px 15px; border: 1px solid #fbc02d; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-/* ✨ स्टार्टरची बटणे लहान करण्यासाठी ✨ */
 .stButton button { font-weight: bold !important; border-radius: 4px !important; border: 1px solid #555 !important; padding: 2px 4px !important; font-size: 10px !important; min-height: 24px !important; line-height: 1 !important; }
 
 @media (max-width: 768px) {
@@ -214,34 +213,33 @@ def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[]
     html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: {max_w};'><div style='width: {tank_width}; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px black; z-index: 11; text-align: center; line-height: 1.2;'>{water_text}</span></div></div>{name_strip}</div>"
     return html
 
-# ✨ स्टार्टर्स आता अत्यंत लहान (Tiny) केले आहेत ✨
+# ✨ नवीन कॉम्पॅक्ट आणि स्पेस-सेव्हिंग स्टार्टर (ॲनिमेशन काढले, लाईट ठेवले) ✨
 def render_compact_starter(col_obj, pump_name, state_key):
     is_on = st.session_state[state_key]
-    needle_rot = -12 if is_on else -45
-    on_glow = "background: radial-gradient(circle, #00ff00, #004d00); box-shadow: 0 0 5px #00ff00; color: white; border: 1px solid #00ff00;" if is_on else "background: #111; color: #555; border: 1px solid #222;"
-    off_glow = "background: radial-gradient(circle, #ff0000, #4d0000); box-shadow: 0 0 5px #ff0000; color: white; border: 1px solid #ff0000;" if not is_on else "background: #111; color: #555; border: 1px solid #222;"
+    on_glow = "background: #00ff00; box-shadow: 0 0 8px #00ff00; color: black;" if is_on else "background: #222; color: #555;"
+    off_glow = "background: #ff0000; box-shadow: 0 0 8px #ff0000; color: white;" if not is_on else "background: #222; color: #555;"
 
-    html = f"""<div style="background-color: #1c1c1c; padding: 4px; border-radius: 6px; border: 1px solid #333; text-align: center; margin-bottom: 2px; box-shadow: 1px 1px 4px rgba(0,0,0,0.3);">
-    <div style="color: #ddd; font-weight: bold; font-size: 10px; margin-bottom: 4px; text-transform: uppercase; white-space: nowrap; overflow: hidden;">{pump_name}</div>
-    <div style="background-color: #f9f9f9; border-radius: 3px; padding: 2px; margin-bottom: 6px; border: 1px solid #aaa; height: 35px; display: flex; align-items: center; justify-content: center;">
-    <svg width="100%" height="30px" viewBox="0 0 100 65"><path d="M 15 45 A 40 40 0 0 1 85 45" fill="none" stroke="#222" stroke-width="1.5"/><text x="15" y="58" font-size="10" text-anchor="middle" font-weight="bold">0</text><text x="50" y="60" font-size="14" text-anchor="middle" font-weight="bold">A</text><text x="85" y="58" font-size="10" text-anchor="middle" font-weight="bold">30</text><line x1="50" y1="58" x2="50" y2="12" stroke="#222" stroke-width="2.5" transform="rotate({needle_rot} 50 58)" style="transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);"/><circle cx="50" cy="58" r="3" fill="black"/></svg></div>
-    <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 2px;">
-    <div style="width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 6px; {on_glow} transition: 0.3s;">ON</div>
-    <div style="width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 6px; {off_glow} transition: 0.3s;">OFF</div></div></div>"""
+    html = f"""<div style="background-color: #1a1a1a; padding: 6px; border-radius: 8px; border: 1px solid #333; text-align: center; margin-bottom: 5px;">
+    <div style="color: #fff; font-weight: bold; font-size: 11px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{pump_name}</div>
+    <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 6px;">
+        <div style="width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 7px; {on_glow} transition: 0.3s;">ON</div>
+        <div style="width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 7px; {off_glow} transition: 0.3s;">OFF</div>
+    </div>
+    </div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
     bc2.button("OFF", key=f"btn_off_{state_key}", on_click=set_pump_state, args=(state_key, False), use_container_width=True)
 
-# ✨ वाल्व्ह आता अत्यंत लहान (Tiny) केले आहेत ✨
+# ✨ वाल्व्हची साईझ सुद्धा लहान केली ✨
 def render_animated_valve(col_obj, valve_name, state_key):
     is_on = st.session_state[state_key]
     handle_rot = 90 if is_on else 0 
     handle_color = "#2ecc71" if is_on else "#e74c3c"
     status_text = "ON" if is_on else "OFF"
     html = f"""<div style="text-align: center; margin-bottom: 2px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; padding: 4px;">
-    <div style="font-size: 10px; font-weight: bold; color: #333; margin-bottom: 4px; white-space: nowrap; overflow: hidden;">{valve_name}</div>
-    <svg width="100%" style="max-width: 35px; height: auto;" viewBox="0 0 60 90"><rect x="22" y="0" width="16" height="90" fill="#95a5a6" /><polygon points="15,25 45,25 50,45 45,65 15,65 10,45" fill="#bdc3c7" stroke="#7f8c8d" stroke-width="1.5"/><rect x="18" y="20" width="24" height="50" fill="#ecf0f1" rx="2" stroke="#7f8c8d" stroke-width="1"/><g transform="rotate({handle_rot} 30 45)" style="transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);"><path d="M 35 40 L 5 40 C 2 40 0 42 0 45 C 0 48 2 50 5 50 L 35 50 Z" fill="{handle_color}" /><circle cx="30" cy="45" r="6" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1"/><circle cx="30" cy="45" r="2.5" fill="#7f8c8d" /></g></svg>
+    <div style="font-size: 10px; font-weight: bold; color: #333; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{valve_name}</div>
+    <svg width="100%" style="max-width: 25px; height: auto;" viewBox="0 0 60 90"><rect x="22" y="0" width="16" height="90" fill="#95a5a6" /><polygon points="15,25 45,25 50,45 45,65 15,65 10,45" fill="#bdc3c7" stroke="#7f8c8d" stroke-width="1.5"/><rect x="18" y="20" width="24" height="50" fill="#ecf0f1" rx="2" stroke="#7f8c8d" stroke-width="1"/><g transform="rotate({handle_rot} 30 45)" style="transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);"><path d="M 35 40 L 5 40 C 2 40 0 42 0 45 C 0 48 2 50 5 50 L 35 50 Z" fill="{handle_color}" /><circle cx="30" cy="45" r="6" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1"/><circle cx="30" cy="45" r="2.5" fill="#7f8c8d" /></g></svg>
     <div style="font-size: 11px; font-weight: 900; color: {handle_color}; margin-top: 2px;">{status_text}</div></div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     col_obj.toggle(valve_name, key=state_key, label_visibility="collapsed")
@@ -319,10 +317,24 @@ else:
 col_left, col_right = st.columns([1.5, 1])
 
 # =========================================================
-# उजवी बाजू (फक्त सोलर, सिक्युरिटी आणि स्थितीदर्शक) - स्टार्टर व वाल्व्ह काढले
+# उजवी बाजू (नंबर १: नोटिफिकेशन बोर्ड)
 # =========================================================
 with col_right:
-    # 🛡️ सुरक्षा प्रणाली
+    # ✨ १. नोटिफिकेशन बोर्ड (नाव बदलले आणि सर्वात वरती घेतले) ✨
+    with st.container(border=True):
+        st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>🔔 नोटिफिकेशन बोर्ड</h5></div>", unsafe_allow_html=True)
+        status_msgs = []
+        if trigger_siren: status_msgs.append("🚨 घुसखोर आढळला! अलार्म सुरू आहे.")
+        if not any_pump_on and not sim_tanker: status_msgs.append("⚠️ सर्व पंप बंद आहेत.")
+        else:
+            if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
+            if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
+            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
+        
+        status_html = "".join([f"<li style='margin-bottom: 5px;'>{msg}</li>" for msg in status_msgs])
+        st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
+
+    # 🛡️ २. सुरक्षा प्रणाली
     with st.container(border=True):
         st.markdown("<div style='background-color: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #c2185b; font-weight: bold;'>🛡️ सुरक्षा प्रणाली</h5></div>", unsafe_allow_html=True)
         sec_c1, sec_c2 = st.columns([1.5, 1], vertical_alignment="center")
@@ -336,7 +348,7 @@ with col_right:
                 with cam_col1: st.markdown("<div style='background-color: #111; height: 100px; border-radius: 8px; text-align: center; color: white; display: flex; align-items: center; justify-content: center;'>CAM 1</div>", unsafe_allow_html=True)
                 with cam_col2: st.markdown("<div style='background-color: #111; height: 100px; border-radius: 8px; text-align: center; color: white; display: flex; align-items: center; justify-content: center;'>CAM 2</div>", unsafe_allow_html=True)
 
-    # ☀️ सोलर ऊर्जा (पूर्वीसारखी १००% सुरक्षित)
+    # ☀️ ३. सोलर ऊर्जा (NO TOUCH)
     with st.container(border=True):
         current_power, daily_kwh = st.session_state.real_solar_power, st.session_state.real_solar_daily
         is_generating = current_power > 0
@@ -395,20 +407,9 @@ with col_right:
                     st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>☁️ CO2 Reduction</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{0.000793 * total_kwh:.2f}<span style='font-size: 12px; font-weight: normal;'>t</span></div></div>", unsafe_allow_html=True)
                 st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🍃 Equivalent tree planting</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{int((total_kwh * 0.997) / 18.3)}<span style='font-size: 12px; font-weight: normal;'>trees</span></div></div>", unsafe_allow_html=True)
 
-    with st.container(border=True):
-        st.markdown("<div style='background-color: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;'><h5 style='margin: 0; color: #1565c0; font-weight: bold;'>📋 स्थितीदर्शक</h5></div>", unsafe_allow_html=True)
-        status_msgs = []
-        if not any_pump_on and not sim_tanker: status_msgs.append("⚠️ सर्व पंप बंद आहेत.")
-        else:
-            if ug_pump: status_msgs.append("🔸 अंडरग्राउंड पंप सुरू आहे.")
-            if bw1_pump: status_msgs.append("🔸 बोअरवेल १ सुरू आहे.")
-            if bw2_pump: status_msgs.append("🔸 बोअरवेल २ सुरू आहे.")
-        
-        status_html = "".join([f"<li style='margin-bottom: 5px;'>{msg}</li>" for msg in status_msgs])
-        st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 # =========================================================
-# ✨ डावी बाजू: फ्रॅगमेंट (लाईव्ह टँक डॅशबोर्ड + आता स्टार्टर आणि वाल्व्ह)
+# ✨ डावी बाजू: फ्रॅगमेंट (लाईव्ह टँक डॅशबोर्ड + ५०:५० अलाईन स्टार्टर आणि वाल्व्ह)
 # =========================================================
 with col_left:
     @st.fragment(run_every="10s")
@@ -437,7 +438,7 @@ with col_left:
             "</div>"
         )
 
-        # टाक्यांची डिझाईन (४०:६०)
+        # टाक्यांची डिझाईन (४०:६० प्रमाण)
         html_combined = (
             "<div style='display: flex; justify-content: center; width: 100%; max-width: 600px; margin: 0 auto; gap: 20px;'>"
             f"<div style='flex: 4; display: flex; justify-content: center;'>{html_t1}</div>"
@@ -450,23 +451,28 @@ with col_left:
         )
         st.markdown(html_combined, unsafe_allow_html=True)
 
-        # ✨ नवीन बदल: स्टार्टर आणि कॉक आता टाक्यांच्या खाली एका 'कार्ड' मध्ये (max-width: 600px) ✨
-        st.markdown("<div style='max-width: 600px; margin: 20px auto 0 auto; background: #f8f9fa; padding: 10px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
+        # ✨ नवीन बदल: स्टार्टर आणि वाल्व्ह (५०:५० प्रमाणात टाक्यांच्या खाली) ✨
+        st.markdown("<div style='max-width: 600px; margin: 15px auto 0 auto;'>", unsafe_allow_html=True)
+        ctrl_c1, ctrl_c2 = st.columns(2)
         
-        st.markdown("<div style='background-color: #424242; padding: 4px; border-radius: 6px; margin-bottom: 8px; text-align: center;'><h6 style='margin: 0; color: #fff; font-weight: bold; font-size: 13px;'>⚡ स्टार्टर कंट्रोल पॅनल</h6></div>", unsafe_allow_html=True)
-        sc1, sc2, sc3 = st.columns(3)
-        render_compact_starter(sc1, "UG PUMP", "ug_pump")
-        render_compact_starter(sc2, "BW-1", "bw1_pump")
-        render_compact_starter(sc3, "BW-2", "bw2_pump")
-        
-        st.markdown("<hr style='margin: 10px 0; border-color: #ddd;'>", unsafe_allow_html=True)
-        
-        st.markdown("<div style='background-color: #c8e6c9; padding: 4px; border-radius: 6px; margin-bottom: 8px; text-align: center;'><h6 style='margin: 0; color: #2e7d32; font-weight: bold; font-size: 13px;'>🎛️ वाल्व्ह (कॉक) स्थिती</h6></div>", unsafe_allow_html=True)
-        v1, v2, v3 = st.columns(3)
-        with v1: render_animated_valve(v1, "V1", "valve_t1")
-        with v2: render_animated_valve(v2, "V2", "valve_t2")
-        with v3: render_animated_valve(v3, "V3", "valve_ug")
-        
+        with ctrl_c1:
+            st.markdown("<div style='background: #f8f9fa; padding: 10px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: 100%;'>", unsafe_allow_html=True)
+            st.markdown("<div style='background-color: #424242; padding: 4px; border-radius: 6px; margin-bottom: 8px; text-align: center;'><h6 style='margin: 0; color: #fff; font-weight: bold; font-size: 13px;'>⚡ स्टार्टर पॅनल</h6></div>", unsafe_allow_html=True)
+            sc1, sc2, sc3 = st.columns(3)
+            render_compact_starter(sc1, "UG PUMP", "ug_pump")
+            render_compact_starter(sc2, "BW-1", "bw1_pump")
+            render_compact_starter(sc3, "BW-2", "bw2_pump")
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with ctrl_c2:
+            st.markdown("<div style='background: #f8f9fa; padding: 10px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: 100%;'>", unsafe_allow_html=True)
+            st.markdown("<div style='background-color: #c8e6c9; padding: 4px; border-radius: 6px; margin-bottom: 8px; text-align: center;'><h6 style='margin: 0; color: #2e7d32; font-weight: bold; font-size: 13px;'>🎛️ वाल्व्ह स्थिती</h6></div>", unsafe_allow_html=True)
+            v1, v2, v3 = st.columns(3)
+            with v1: render_animated_valve(v1, "V1", "valve_t1")
+            with v2: render_animated_valve(v2, "V2", "valve_t2")
+            with v3: render_animated_valve(v3, "V3", "valve_ug")
+            st.markdown("</div>", unsafe_allow_html=True)
+            
         st.markdown("</div>", unsafe_allow_html=True)
 
     live_water_dashboard()
