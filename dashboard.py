@@ -20,7 +20,7 @@ except:
     GOOGLE_WEB_APP_URL = ""
 
 # ---------------------------------------------------------
-# 💧 गुगल शीटवरून डेटा आणणे (Error Handling सह)
+# 💧 गुगल शीटवरून डेटा आणणे 
 # ---------------------------------------------------------
 if 'last_valid_distance' not in st.session_state:
     st.session_state.last_valid_distance = 0.0
@@ -112,6 +112,9 @@ def get_panchang_details(selected_date):
         "is_chaturthi": cur_tithi in [4, 19], "is_ekadashi": cur_tithi in [11, 26]
     }
 
+# ---------------------------------------------------------
+# 🔐 १. Solarman API (मूळ फायनल कोडसह)
+# ---------------------------------------------------------
 def get_solarman_token():
     try:
         app_id, app_secret, email, raw_password = st.secrets["sofar"]["app_id"], st.secrets["sofar"]["app_secret"], st.secrets["sofar"]["email"], st.secrets["sofar"]["password"]
@@ -130,18 +133,39 @@ def fetch_live_solar_data():
         if not res_list.get("success") or not res_list.get("stationList"): return None
         station_id = res_list["stationList"][0]["id"]
         daily_energy = float(res_list["stationList"][0].get("generationToday", res_list["stationList"][0].get("dailyEnergy", 0.0)))
+        
         live_data = requests.post(f"https://globalapi.solarmanpv.com/station/v1.0/realTime?appId={app_id}&language=en", headers=headers, json={"stationId": station_id}, timeout=10).json()
-        if live_data.get("success"): live_data.update({"custom_daily_energy": daily_energy, "network_status": res_list["stationList"][0].get("networkStatus", "UNKNOWN")}); return live_data
+        
+        history_data = {}
+        try:
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            hist_url = f"https://globalapi.solarmanpv.com/station/v1.0/history?appId={app_id}&language=en"
+            r_day = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 1, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            r_month = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 2, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            r_year = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 3, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            r_total = requests.post(hist_url, headers=headers, json={"stationId": station_id, "timeType": 4, "startTime": today_str, "endTime": today_str}, timeout=10).json()
+            for res in [r_day, r_month, r_year, r_total]:
+                if isinstance(res, dict):
+                    for k, v in res.items():
+                        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
+                            if res == r_day: history_data['day'] = [float(i.get('value', i.get('generation', i.get('power', 0))) or 0.0) for i in v]
+                            if res == r_month: history_data['month'] = [float(i.get('value', i.get('generation', i.get('power', 0))) or 0.0) for i in v]
+                            if res == r_year: history_data['year'] = [float(i.get('value', i.get('generation', i.get('power', 0))) or 0.0) for i in v]
+                            if res == r_total: history_data['total'] = [float(i.get('value', i.get('generation', i.get('power', 0))) or 0.0) for i in v]
+        except: pass
+        if live_data.get("success"): live_data.update({"custom_daily_energy": daily_energy, "network_status": res_list["stationList"][0].get("networkStatus", "UNKNOWN"), "history": history_data}); return live_data
         return None
     except: return None
 
 # ---------------------------------------------------------
-# ३. CSS (मोबाईल UI अत्यंत सुटसुटीत करण्यासाठी)
+# ३. CSS (सोलर ॲनिमेशन सह)
 # ---------------------------------------------------------
 css = """
 <style>
 @keyframes waterPour { 0% { background-position: 0 0px; } 100% { background-position: 0 16px; } }
 @keyframes waveMove { 0% { background-position-x: 0px; } 100% { background-position-x: 40px; } }
+@keyframes sunGlow { 0% { box-shadow: 0 0 5px #fbc02d; } 50% { box-shadow: 0 0 10px #fbc02d; } 100% { box-shadow: 0 0 5px #fbc02d; } }
+@keyframes energyFlow { 0% { background-position: 0px 0; } 100% { background-position: 20px 0; } }
 @keyframes sirenFlash { 0% { background-color: #ffebee; border: 4px solid #d32f2f; } 50% { background-color: #d32f2f; color: white; box-shadow: 0 0 40px #d32f2f; } 100% { background-color: #ffebee; border: 4px solid #d32f2f; } }
 .flashing-alert { animation: sirenFlash 0.5s infinite; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
 .normal-banner { text-align: center; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 12px; border-radius: 8px; margin-bottom: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #4a6fa5; }
@@ -169,13 +193,12 @@ st.markdown(css, unsafe_allow_html=True)
 # ---------------------------------------------------------
 for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug', 'is_solar_live']:
     if key not in st.session_state: st.session_state[key] = False
-for key, default in [('alarm_armed', False), ('real_solar_power', 0.0), ('real_solar_total', 0.0), ('real_solar_daily', 0.0), ('inverter_status', "PENDING")]:
+for key, default in [('alarm_armed', False), ('real_solar_power', 0.0), ('real_solar_total', 0.0), ('real_solar_daily', 0.0), ('inverter_status', "PENDING"), ('chart_day', [0]*10), ('chart_month', [0]*12), ('chart_year', [0]*5), ('chart_total', [0]*10)]:
     if key not in st.session_state: st.session_state[key] = default
 
 def set_pump_state(key, state): st.session_state[key] = state
 
-# ✨ येथे आता १००% रुंदी वापरली आहे, कारण Flexbox ४०:६० चे काम करेल ✨
-def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[]):
+def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[], max_w="280px"):
     water_grad = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)" if tank_type == "overhead" else "linear-gradient(to bottom, #0077b6 0%, #023e8a 100%)"
     dark_wave_color = "%23005b96" if tank_type == "overhead" else "%23023e8a"
     tank_height, tank_width = ("160px", "100%") if tank_type == "underground" else ("220px", "100%")
@@ -189,10 +212,9 @@ def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[]
         pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
     water_text = f"{liters:,.0f} L<br><span style='font-size:14px;'>({percentage}%)</span>"
-    # नावाची पट्टी आता word-wrap सह आहे, जेणेकरून लहान टाकीत नाव बाहेर जाणार नाही
     name_strip = f"<div style='margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center; background: #333; color: white; padding: 4px 10px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); line-height: 1.2; word-wrap: break-word;'>{tank_name}</div>"
     
-    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px black; z-index: 11; text-align: center; line-height: 1.2;'>{water_text}</span></div></div>{name_strip}</div>"
+    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: {max_w};'><div style='width: {tank_width}; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px black; z-index: 11; text-align: center; line-height: 1.2;'>{water_text}</span></div></div>{name_strip}</div>"
     return html
 
 def render_compact_starter(col_obj, pump_name, state_key):
@@ -243,7 +265,12 @@ with st.sidebar:
             if data:
                 power_watts = float(data.get("generationPower", 0))
                 st.session_state.real_solar_power = power_watts / 1000.0 if power_watts > 10 else power_watts
+                st.session_state.real_solar_total = float(data.get("generationTotal", 0))
                 st.session_state.real_solar_daily = float(data.get("custom_daily_energy", 0.0))
+                st.session_state.inverter_status = data.get("network_status", "UNKNOWN")
+                hist = data.get("history", {})
+                for k in ['day', 'month', 'year', 'total']:
+                    if hist.get(k): st.session_state[f"chart_{k}"] = hist[k]
                 st.session_state.is_solar_live = True
                 st.success("✅ डेटा यशस्वीरीत्या अपडेट झाला!")
 
@@ -307,15 +334,66 @@ with col_right:
                 with cam_col1: st.markdown("<div style='background-color: #111; height: 100px; border-radius: 8px; text-align: center; color: white; display: flex; align-items: center; justify-content: center;'>CAM 1</div>", unsafe_allow_html=True)
                 with cam_col2: st.markdown("<div style='background-color: #111; height: 100px; border-radius: 8px; text-align: center; color: white; display: flex; align-items: center; justify-content: center;'>CAM 2</div>", unsafe_allow_html=True)
 
-    # ☀️ सोलर ऊर्जा
+    # ✨ ☀️ सोलर ऊर्जा (संपूर्ण फायनल डिझाईन आणि रिपोर्टसह) ✨
     with st.container(border=True):
         current_power, daily_kwh = st.session_state.real_solar_power, st.session_state.real_solar_daily
+        is_generating = current_power > 0
+        is_offline = "OFFLINE" in st.session_state.inverter_status
         display_power = f"{current_power:.2f} kW"
         display_daily = f"{int(daily_kwh * 1000)} Wh" if daily_kwh < 1.0 else f"{daily_kwh:.2f} kWh"
-        st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा</h5></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
 
-    # ⚡ कंट्रोल पॅनल 
+        if not st.session_state.is_solar_live: 
+            solar_glow, line_style, status_color, status_text, data_source_badge = "border: 1px solid #ccc;", "background-color: #bdc3c7;", "#555", "🔄 कृपया 'लाईव्ह डेटा रिफ्रेश करा' बटण दाबा", "<span style='background-color: #9e9e9e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>⏳ PENDING</span>"
+        elif is_offline: 
+            solar_glow, line_style, status_color, status_text, data_source_badge = "border: 1px solid #95a5a6;", "background-color: #bdc3c7;", "#7f8c8d", "🌙 इन्व्हर्टर स्लीप मोडमध्ये आहे (रात्र)", "<span style='background-color: #7f8c8d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🌙 OFFLINE</span>"
+        else: 
+            solar_glow = "animation: sunGlow 3s infinite;" if is_generating else "border: 1px solid #ccc;"
+            line_style = "background-image: repeating-linear-gradient(90deg, #00b4d8 0px, #00b4d8 10px, transparent 10px, transparent 20px); background-size: 20px 100%; animation: energyFlow 0.5s linear infinite;" if is_generating else "background-image: repeating-linear-gradient(90deg, #bdc3c7 0px, #bdc3c7 10px, transparent 10px, transparent 20px);"
+            status_color = "#2e7d32" if is_generating else "#c62828"
+            status_text = "🟢 सौर ऊर्जेची निर्मिती सुरू आहे (Live)" if is_generating else "🔴 सौर निर्मिती सध्या 0 W आहे"
+            data_source_badge = "<span style='background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;'>🟢 LIVE DATA</span>"
+
+        solar_panel_svg = """<svg width="45" height="45" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="10" fill="#FFA500"/><polyline points="75,90 85,90 80,40" fill="none" stroke="#999" stroke-width="4"/><polygon points="35,85 45,35 85,30 70,80" fill="#1e5799" stroke="#ddd" stroke-width="2"/></svg>"""
+        grid_tower_svg = """<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polyline points="50,10 30,90" fill="none" stroke="#555" stroke-width="3"/><polyline points="50,10 70,90" fill="none" stroke="#555" stroke-width="3"/><line x1="20" y1="50" x2="80" y2="50" stroke="#555" stroke-width="3"/></svg>"""
+
+        st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center; position: relative; {solar_glow}'><div style='position: absolute; top: 5px; right: 5px;'>{data_source_badge}</div><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा (Sofar Inverter)</h5></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-top: 5px;'><div style='display: flex; align-items: center; justify-content: space-between;'><div style='text-align: center; width: 60px;'>{solar_panel_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Panels</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 40px;'><div style='font-size: 28px;'>🎛️</div><div style='font-size: 11px; font-weight: bold; color:#555;'>Inverter</div></div><div style='flex-grow: 1; height: 4px; margin: 0 5px; {line_style}'></div><div style='text-align: center; width: 60px;'>{grid_tower_svg}<div style='font-size: 11px; font-weight: bold; color:#555;'>Grid</div></div></div></div>", unsafe_allow_html=True)
+        
+        sc1, sc2 = st.columns([3, 2])
+        with sc1: st.markdown(f"<div style='margin-top: 5px; font-weight: bold; font-size: 13px; color: {status_color};'>{status_text}</div>", unsafe_allow_html=True)
+        
+        with sc2:
+            report_pop = st.popover("📊 सोलर रिपोर्ट", use_container_width=True)
+            with report_pop:
+                if st.button("⬅️ डॅशबोर्डवर परत जा", key="close_solar_btn", use_container_width=True): st.rerun()
+                st.markdown("<div style='background-color: #f3e5f5; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #6a1b9a; font-weight: bold;'>📊 सोलर रिपोर्ट आणि आकडेवारी</h5></div>", unsafe_allow_html=True)
+                tab_day, tab_month, tab_year, tab_total = st.tabs(["Day", "Month", "Year", "Total"])
+                with tab_day: st.line_chart(st.session_state.chart_day, height=150) 
+                with tab_month: st.bar_chart(st.session_state.chart_month, height=150)
+                with tab_year: st.bar_chart(st.session_state.chart_year, height=150)
+                with tab_total: st.line_chart(st.session_state.chart_total, height=150)
+                
+                daily_production_kwh = st.session_state.real_solar_daily
+                report_daily_display = f"{int(daily_production_kwh * 1000)} Wh" if daily_production_kwh < 1.0 else f"{daily_production_kwh:.2f} kWh"
+                st.markdown(f"<div style='background-color: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 15px; border: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;'><div style='font-weight: 600; color: #555;'><span style='color: #2196F3;'>🟦</span> Daily Production:</div><div style='font-weight: bold; font-size: 16px;'>{report_daily_display}</div></div>", unsafe_allow_html=True)
+                st.markdown("<h6 style='margin-top: 20px; color: #333;'>Operation Statistics <span style='color: #999; font-size: 12px;'>❔</span></h6>", unsafe_allow_html=True)
+                
+                total_kwh = st.session_state.real_solar_total
+                start_date = datetime.fromtimestamp(1721561718)
+                running_days = (datetime.now() - start_date).days if st.session_state.is_solar_live else 618 
+                
+                card_style = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🕐 Running Days</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{running_days}<span style='font-size: 12px; font-weight: normal;'>day</span></div></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>💰 Profit Estimate</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>₹ {int(total_kwh * 7.5):,} <span style='font-size: 12px; font-weight: normal;'>INR</span></div></div>", unsafe_allow_html=True)
+                with col_b:
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>⚡ Total Production</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{total_kwh / 1000.0:.2f}<span style='font-size: 12px; font-weight: normal;'>MWh</span></div></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>☁️ CO2 Reduction</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{0.000793 * total_kwh:.2f}<span style='font-size: 12px; font-weight: normal;'>t</span></div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='{card_style}'><div style='color: #7f8c8d; font-size: 13px; margin-bottom: 5px;'>🍃 Equivalent tree planting</div><div style='font-size: 18px; font-weight: bold; color: #2c3e50;'>{int((total_kwh * 0.997) / 18.3)}<span style='font-size: 12px; font-weight: normal;'>trees</span></div></div>", unsafe_allow_html=True)
+
+    # ⚡ कंट्रोल पॅनल
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल पॅनल</h5></div>", unsafe_allow_html=True)
         sc1, sc2, sc3 = st.columns(3)
@@ -323,7 +401,7 @@ with col_right:
         render_compact_starter(sc2, "BW-1", "bw1_pump")
         render_compact_starter(sc3, "BW-2", "bw2_pump")
 
-    # 🎛️ वाल्व्ह पॅनल 
+    # 🎛️ वाल्व्ह पॅनल
     with st.container(border=True):
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक) स्थिती</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
@@ -356,14 +434,14 @@ with col_left:
         t2_liters = (200.0 * 200.0 * 60.0) / 1000.0
         ug_liters = (200.0 * 400.0 * 75.0) / 1000.0
 
-        html_t1 = get_tank_html("वरच्या मजल्या करिता", live_pct, live_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
-        html_t2 = get_tank_html("तळमजल्या करिता", 60, t2_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
-        html_ug = get_tank_html("भूमिगत टाकी", 75, ug_liters, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
+        html_t1 = get_tank_html("वरच्या मजल्या करिता", live_pct, live_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}], max_w="224px")
+        html_t2 = get_tank_html("तळमजल्या करिता", 60, t2_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}], max_w="336px")
+        html_ug = get_tank_html("भूमिगत टाकी", 75, ug_liters, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}], max_w="280px")
         
         garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
         
         garden_html = (
-            "<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'>"
+            "<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 280px;'>"
             "<div style='width: 100%; height: 160px; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);'>"
             f"{garden_active_html}"
             "<div style='font-size: 40px;'>🌳🏡🌿</div>"
@@ -374,8 +452,6 @@ with col_left:
             "</div>"
         )
 
-        # ✨ Flexbox चे गणित: वरची रांग 40:60 (flex: 4 आणि flex: 6) आणि खालची रांग 50:50 (flex: 5) ✨
-        # max-width: 600px मुळे दोन्ही रांगांची एकूण रुंदी तंतोतंत समान राहील.
         html_combined = (
             "<div style='display: flex; justify-content: center; width: 100%; max-width: 600px; margin: 0 auto; gap: 20px;'>"
             f"<div style='flex: 4; display: flex; justify-content: center;'>{html_t1}</div>"
