@@ -136,7 +136,7 @@ def fetch_live_solar_data():
     except: return None
 
 # ---------------------------------------------------------
-# ३. CSS (मोबाईलसाठी Tiny Components चे CSS)
+# ३. CSS (मोबाईल UI अत्यंत सुटसुटीत करण्यासाठी)
 # ---------------------------------------------------------
 css = """
 <style>
@@ -148,50 +148,66 @@ css = """
 .stButton button { font-weight: bold !important; border-radius: 6px !important; border: 2px solid #555 !important; }
 .panchang-strip { background-color: #fffde7; border-radius: 6px; padding: 8px 15px; border: 1px solid #fbc02d; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-/* ✨ मोबाईल UI साठी Tiny CSS ✨ */
+/* ✨ अत्यंत शक्तिशाली CSS Override (मोबाईल UI साठी) ✨ */
 @media (max-width: 768px) {
-    /* स्टार्टर्स आणि वाल्व्ह एका रेषेत आणणे */
-    div[data-testid="stHorizontalBlock"]:has(.starter-card),
-    div[data-testid="stHorizontalBlock"]:has(.valve-card) {
+    /* 1. सर्व Horizontal Blocks सक्तीने आडवे ठेवणे (विस्कळीत होऊ न देणे) */
+    div[data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 2px !important;
+        gap: 4px !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(.starter-card) > div[data-testid="column"],
-    div[data-testid="stHorizontalBlock"]:has(.valve-card) > div[data-testid="column"] {
-        width: 33.33% !important;
-        min-width: 30% !important;
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: auto !important;
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
         padding: 0 2px !important;
     }
-    /* ON/OFF बटणे लहान आणि आडवी करणे */
-    div[data-testid="stVerticalBlock"]:has(.starter-card) div[data-testid="stHorizontalBlock"] {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 2px !important;
+    
+    /* 2. स्टार्टर आणि वाल्व्ह कार्ड्सला Tiny (लहान) करणे */
+    .starter-card {
+        padding: 4px !important;
+        border-width: 1px !important;
     }
-    div[data-testid="stVerticalBlock"]:has(.starter-card) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        width: 50% !important;
-        min-width: 45% !important;
-        padding: 0 !important;
+    .valve-card {
+        padding: 2px !important;
     }
-    div[data-testid="stVerticalBlock"]:has(.starter-card) button {
+    /* SVG चे आकार लहान करणे */
+    .starter-card svg {
+        max-height: 25px !important;
+    }
+    .valve-card svg {
+        max-height: 35px !important;
+        width: auto !important;
+    }
+    
+    /* 3. मजकूर आणि बटणे लहान करणे */
+    .mobile-shrink-text {
+        font-size: 8px !important;
+        margin-bottom: 3px !important;
+    }
+    .valve-status-text {
+        font-size: 10px !important;
+    }
+    .stButton button {
         padding: 0px 2px !important;
         font-size: 8px !important;
         min-height: 20px !important;
+        line-height: 1 !important;
     }
-    /* SVG आणि कार्ड्स अतिशय लहान (Tiny) करणे */
-    .starter-card, .valve-card { padding: 3px !important; margin-bottom: 2px !important; }
-    .starter-card svg { max-height: 30px !important; }
-    .valve-card svg { max-height: 45px !important; width: auto !important; }
-    .mobile-shrink-text { font-size: 8px !important; }
-    .valve-status-text { font-size: 10px !important; }
+    
+    /* 4. ON/OFF चे दिवे लहान करणे */
+    .indicator-bulb {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 6px !important;
+    }
 }
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# ५. स्टेट्स आणि UI फंक्शन्स
+# ५. स्टेट्स आणि UI फंक्शन्स (कोणताही बदल नाही)
 # ---------------------------------------------------------
 for key in ['ug_pump', 'bw1_pump', 'bw2_pump', 'valve_t1', 'valve_t2', 'valve_ug', 'is_solar_live']:
     if key not in st.session_state: st.session_state[key] = False
@@ -213,11 +229,8 @@ def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[]
         active_pour = f"<div style='position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 12px; height: {tank_height}; background-image: repeating-linear-gradient(transparent, #00b4d8 4px, transparent 8px); background-size: 100% 16px; animation: waterPour 0.3s infinite linear; z-index: 1;'></div>" if inlet['active'] else ""
         pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
-    # टाकीच्या आत लिटर आणि टक्केवारी दाखवणे
     water_text = f"{liters:,.0f} L<br><span style='font-size:14px;'>({percentage}%)</span>"
-    
     name_strip = f"<div style='margin-top: 15px; font-weight: bold; font-size: 16px; background: #333; color: white; padding: 4px 15px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); white-space: nowrap;'>{tank_name}</div>"
-    
     html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; max-width: 400px; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px black; z-index: 11; text-align: center; line-height: 1.2;'>{water_text}</span></div></div>{name_strip}</div>"
     return html
 
@@ -232,8 +245,8 @@ def render_compact_starter(col_obj, pump_name, state_key):
     <div style="background-color: #f9f9f9; border-radius: 4px; padding: 2px; margin-bottom: 8px; border: 1px solid #aaa; position: relative; height: auto;">
     <svg width="100%" height="auto" viewBox="0 0 100 65" style="max-height: 40px;"><path d="M 15 45 A 40 40 0 0 1 85 45" fill="none" stroke="#222" stroke-width="1.5"/><text x="15" y="58" font-size="10" text-anchor="middle" font-weight="bold">0</text><text x="50" y="60" font-size="14" text-anchor="middle" font-weight="bold">A</text><text x="85" y="58" font-size="10" text-anchor="middle" font-weight="bold">30</text><line x1="50" y1="58" x2="50" y2="12" stroke="#222" stroke-width="2.5" transform="rotate({needle_rot} 50 58)" style="transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);"/><circle cx="50" cy="58" r="3" fill="black"/></svg></div>
     <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 2px;">
-    <div style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; {on_glow} transition: 0.3s;">ON</div>
-    <div style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; {off_glow} transition: 0.3s;">OFF</div></div></div>"""
+    <div class="indicator-bulb" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; {on_glow} transition: 0.3s;">ON</div>
+    <div class="indicator-bulb" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 7px; {off_glow} transition: 0.3s;">OFF</div></div></div>"""
     col_obj.markdown(html, unsafe_allow_html=True)
     bc1, bc2 = col_obj.columns(2)
     bc1.button("ON", key=f"btn_on_{state_key}", on_click=set_pump_state, args=(state_key, True), use_container_width=True)
@@ -252,7 +265,7 @@ def render_animated_valve(col_obj, valve_name, state_key):
     col_obj.toggle(valve_name, key=state_key, label_visibility="collapsed")
 
 # ---------------------------------------------------------
-# ६. मुख्य लॉजिक आणि बॅनर
+# ६. मुख्य लॉजिक आणि बॅनर (कोणताही बदल नाही)
 # ---------------------------------------------------------
 with st.sidebar:
     st.markdown("### ⚙️ टेस्टिंग सिम्युलेटर")
@@ -264,7 +277,7 @@ with st.sidebar:
     st.markdown("#### 🔌 खऱ्या सोलरचे API कनेक्शन")
     
     if st.button("🔄 सोलर डेटा रिफ्रेश करा", type="primary"):
-        with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत आहे..."):
+        with st.spinner("इन्व्हर्टरकडून लाईव्ह माहिती आणत ছুটি आहे..."):
             data = fetch_live_solar_data()
             if data:
                 power_watts = float(data.get("generationPower", 0))
@@ -341,7 +354,7 @@ with col_right:
         st.markdown(f"<div style='background-color: #fffde7; padding: 8px; border-radius: 6px; margin-bottom: 12px; text-align: center;'><h5 style='margin: 0; color: #f57f17; font-weight: bold;'>☀️ सोलर ऊर्जा</h5></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='display: flex; justify-content: space-around; align-items: center; margin-bottom: 10px;'><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>सध्याची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #2e7d32;'>{display_power}</div></div><div style='text-align: center;'><div style='font-size: 13px; color: #666;'>आजची निर्मिती</div><div style='font-size: 20px; font-weight: bold; color: #1565c0;'>{display_daily}</div></div></div>", unsafe_allow_html=True)
 
-    # ⚡ कंट्रोल पॅनल
+    # ⚡ कंट्रोल पॅनल (मोबाईलवर एका रांगेत आणि Tiny दिसण्यासाठी)
     with st.container(border=True):
         st.markdown("<div style='background-color: #424242; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; border: 1px solid #222;'><h5 style='margin: 0; color: #fff; font-weight: bold;'>⚡ स्टार्टर कंट्रोल पॅनल</h5></div>", unsafe_allow_html=True)
         sc1, sc2, sc3 = st.columns(3)
@@ -349,7 +362,7 @@ with col_right:
         render_compact_starter(sc2, "BW-1", "bw1_pump")
         render_compact_starter(sc3, "BW-2", "bw2_pump")
 
-    # 🎛️ वाल्व्ह पॅनल
+    # 🎛️ वाल्व्ह पॅनल (मोबाईलवर एका रांगेत आणि Tiny दिसण्यासाठी)
     with st.container(border=True):
         st.markdown("<div style='background-color: #c8e6c9; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;'><h5 style='margin: 0; color: #2e7d32; font-weight: bold;'>🎛️ वाल्व्ह (कॉक) स्थिती</h5></div>", unsafe_allow_html=True)
         v1, v2, v3 = st.columns(3)
@@ -401,6 +414,7 @@ with col_left:
             "</div>"
         )
 
+        # पाण्याची वेगळी पट्टी आता काढून टाकली आहे.
         html_combined = (
             "<div style='display: flex; justify-content: space-around; width: 100%; gap: 10px;'>"
             f"<div style='flex: 1; display: flex; justify-content: center;'>{html_t1}</div>"
