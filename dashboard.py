@@ -42,7 +42,7 @@ def get_tank_distance_from_google():
 def calc_tank1_data(sensor_distance_cm):
     TANK_LENGTH_CM = 100.0    
     TANK_WIDTH_CM = 100.0     
-    MAX_WATER_HEIGHT = 300.0  
+    MAX_WATER_HEIGHT = 350.0  
     SENSOR_GAP_CM = 25.0      
     
     base_area = TANK_LENGTH_CM * TANK_WIDTH_CM
