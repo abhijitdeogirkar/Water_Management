@@ -42,7 +42,7 @@ def get_tank_distance_from_google():
 def calc_tank1_data(sensor_distance_cm):
     TANK_LENGTH_CM = 100.0    
     TANK_WIDTH_CM = 100.0     
-    MAX_WATER_HEIGHT = 350.0  
+    MAX_WATER_HEIGHT = 200.0  
     SENSOR_GAP_CM = 25.0      
     
     base_area = TANK_LENGTH_CM * TANK_WIDTH_CM
@@ -174,8 +174,8 @@ for key, default in [('alarm_armed', False), ('real_solar_power', 0.0), ('real_s
 
 def set_pump_state(key, state): st.session_state[key] = state
 
-# ✨ येथे max_w चा पॅरामीटर ॲड केला आहे (४०:६० रेशिओसाठी) ✨
-def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[], max_w="280px"):
+# ✨ येथे आता १००% रुंदी वापरली आहे, कारण Flexbox ४०:६० चे काम करेल ✨
+def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[]):
     water_grad = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)" if tank_type == "overhead" else "linear-gradient(to bottom, #0077b6 0%, #023e8a 100%)"
     dark_wave_color = "%23005b96" if tank_type == "overhead" else "%23023e8a"
     tank_height, tank_width = ("160px", "100%") if tank_type == "underground" else ("220px", "100%")
@@ -189,9 +189,10 @@ def get_tank_html(tank_name, percentage, liters, tank_type="overhead", inlets=[]
         pipes_html += f"<div style='position: absolute; bottom: 100%; left: {offset}%; transform: translateX(-50%); text-align: center; width: 120px;'><div style='font-size: 13px; font-weight: bold; color: #555; margin-bottom: 2px;'>{inlet['name']}</div><div style='width: 30px; height: 18px; background-color: #7f8c8d; border-radius: 4px; margin: 0 auto; border: 1px solid #555;'></div><div style='width: 14px; height: 25px; background-color: #bdc3c7; margin: 0 auto; position: relative; border-left: 1px solid #7f8c8d; border-right: 1px solid #7f8c8d; z-index: 3;'>{active_pour}</div></div>"
 
     water_text = f"{liters:,.0f} L<br><span style='font-size:14px;'>({percentage}%)</span>"
-    name_strip = f"<div style='margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center; background: #333; color: white; padding: 4px 10px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); line-height: 1.2;'>{tank_name}</div>"
+    # नावाची पट्टी आता word-wrap सह आहे, जेणेकरून लहान टाकीत नाव बाहेर जाणार नाही
+    name_strip = f"<div style='margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center; background: #333; color: white; padding: 4px 10px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); line-height: 1.2; word-wrap: break-word;'>{tank_name}</div>"
     
-    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: {max_w};'><div style='width: {tank_width}; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px black; z-index: 11; text-align: center; line-height: 1.2;'>{water_text}</span></div></div>{name_strip}</div>"
+    html = f"<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'><div style='width: {tank_width}; height: {tank_height}; border: 3px solid #333; position: relative; background-color: #eef2f3; border-top: none; border-radius: 0 0 12px 12px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); border-top: 1px solid #aaa;'>{pipes_html}<div style='position: absolute; bottom: 0; width: 100%; height: {percentage}%; background: {water_grad}; transition: height 1s ease-in-out; display: flex; align-items: center; justify-content: center; border-radius: 0 0 9px 9px; z-index: 2; border-top: 1px solid rgba(255,255,255,0.4);'>{wave_html}<span style='color: white; font-weight: bold; font-size: 18px; text-shadow: 1px 1px 3px black; z-index: 11; text-align: center; line-height: 1.2;'>{water_text}</span></div></div>{name_strip}</div>"
     return html
 
 def render_compact_starter(col_obj, pump_name, state_key):
@@ -343,7 +344,7 @@ with col_right:
         st.markdown(f"<ul style='font-size: 14px; color: #333; font-weight: 600; padding-left: 20px; margin-bottom: 0;'>{status_html}</ul>", unsafe_allow_html=True)
 
 # =========================================================
-# ✨ फ्रॅगमेंट (लाईव्ह टँक डॅशबोर्ड - 40:60 प्रमाण)
+# ✨ फ्रॅगमेंट (लाईव्ह टँक डॅशबोर्ड - 40:60 आणि 50:50 अलाईनमेंट)
 # =========================================================
 with col_left:
     @st.fragment(run_every="10s")
@@ -352,37 +353,37 @@ with col_left:
         live_pct, live_liters, live_level_cm = calc_tank1_data(dist_from_gs)
         
         # डमी डेटा (इतर टाक्यांसाठी)
-        t2_liters = (200.0 * 100.0 * 100.0) / 1000.0
-        ug_liters = (200.0 * 300.0 * 75.0) / 1000.0
+        t2_liters = (200.0 * 200.0 * 60.0) / 1000.0
+        ug_liters = (200.0 * 400.0 * 75.0) / 1000.0
 
-        # ✨ 40:60 चे अचूक प्रमाण (224px आणि 336px) ✨
-        html_t1 = get_tank_html("वरच्या मजल्या करिता", live_pct, live_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}], max_w="224px")
-        html_t2 = get_tank_html("तळमजल्या करिता", 60, t2_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}], max_w="336px")
-        html_ug = get_tank_html("भूमिगत टाकी", 75, ug_liters, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}], max_w="280px")
+        html_t1 = get_tank_html("वरच्या मजल्या करिता", live_pct, live_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank1_pouring}])
+        html_t2 = get_tank_html("तळमजल्या करिता", 60, t2_liters, tank_type="overhead", inlets=[{"name": "Main Line", "active": tank2_pouring}])
+        html_ug = get_tank_html("भूमिगत टाकी", 75, ug_liters, tank_type="underground", inlets=[{"name": "Borewell (V3)", "active": ug_pouring_from_bw}, {"name": "Tanker", "active": ug_pouring_from_tanker}])
         
         garden_active_html = "<div style='position: absolute; top: -30px; left: 50%; transform: translateX(-50%); width: 8px; height: 40px; background-image: repeating-linear-gradient(transparent, #4facfe 2px, transparent 6px); background-size: 100% 10px; animation: waterPour 0.3s infinite linear;'></div>" if garden_watering else ""
         
         garden_html = (
-            "<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 280px;'>"
+            "<div style='margin-top: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;'>"
             "<div style='width: 100%; height: 160px; border: 3px solid #2e7d32; border-radius: 12px; background: #e8f5e9; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);'>"
             f"{garden_active_html}"
             "<div style='font-size: 40px;'>🌳🏡🌿</div>"
             "<h4 style='color: #2e7d32; margin: 10px 0 0 0; font-size: 14px;'>गार्डन / झाडे</h4>"
             "<p style='font-size: 10px; color: #555; margin: 5px 0 0 0;'>भूमिगत टाकीतून</p>"
             "</div>"
-            "<div style='margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center; background: #333; color: white; padding: 4px 10px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); line-height: 1.2;'>गार्डन / झाडे</div>"
+            "<div style='margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center; background: #333; color: white; padding: 4px 10px; border-radius: 6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); line-height: 1.2; word-wrap: break-word;'>गार्डन / झाडे</div>"
             "</div>"
         )
 
-        # ✨ Flex wrappers काढले आहेत, ज्यामुळे ते अचूक ५६०px ची रुंदी व्यापतील आणि सेंटर अलाईन होतील ✨
+        # ✨ Flexbox चे गणित: वरची रांग 40:60 (flex: 4 आणि flex: 6) आणि खालची रांग 50:50 (flex: 5) ✨
+        # max-width: 600px मुळे दोन्ही रांगांची एकूण रुंदी तंतोतंत समान राहील.
         html_combined = (
-            "<div style='display: flex; justify-content: center; width: 100%; gap: 20px;'>"
-            f"{html_t1}"
-            f"{html_t2}"
+            "<div style='display: flex; justify-content: center; width: 100%; max-width: 600px; margin: 0 auto; gap: 20px;'>"
+            f"<div style='flex: 4; display: flex; justify-content: center;'>{html_t1}</div>"
+            f"<div style='flex: 6; display: flex; justify-content: center;'>{html_t2}</div>"
             "</div>"
-            "<div style='display: flex; justify-content: center; width: 100%; gap: 20px; align-items: flex-end;'>"
-            f"{html_ug}"
-            f"{garden_html}"
+            "<div style='display: flex; justify-content: center; width: 100%; max-width: 600px; margin: 0 auto; gap: 20px; align-items: flex-end;'>"
+            f"<div style='flex: 5; display: flex; justify-content: center; width: 100%;'>{html_ug}</div>"
+            f"<div style='flex: 5; display: flex; justify-content: center; width: 100%;'>{garden_html}</div>"
             "</div>"
         )
         st.markdown(html_combined, unsafe_allow_html=True)
